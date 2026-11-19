@@ -37,6 +37,7 @@ final class ListenEngine {
     // Outputs
     var onSubtitle: ((_ source: String, _ translation: String, _ previous: String) -> Void)?
     var onStatus: ((String) -> Void)?
+    var onAlert: ((String?) -> Void)?
     var onStateChange: (() -> Void)?
     /// A finished sentence; `secondsAgo` ≈ how long ago it started.
     var onFinal: ((Segment, _ secondsAgo: Double) -> Void)?
@@ -421,6 +422,7 @@ final class ListenEngine {
     private(set) var heardSpeech = false
 
     func stop() {
+        onAlert?(nil)
         // Lines still waiting for the language are recorded rather than dropped: the meeting
         // ended before detection settled it. Not when the only model said the audio isn't its
         // language: those lines are noise, and the recording keeps what was said.
@@ -1222,22 +1224,40 @@ final class ListenEngine {
                     try await Task.sleep(for: .seconds(1))
                     heard = try await translator.hear(wav: wav, seconds: seconds, target: self.resolvedTarget, hint: self.cloudHint)
                 }
-                if (self.cloud?.failures ?? 0) >= 3 { self.setStatus(L("\(self.cloudService ?? "AI") 在听")) }
+                if (self.cloud?.failures ?? 0) >= 1 {
+                    self.setStatus(L("\(self.cloudService ?? "AI") 在听"))
+                    self.onAlert?(nil)
+                }
                 self.cloud?.failures = 0
                 return heard
             } catch {
                 guard gen == self.generation, self.cloud != nil, !(error is CancellationError) else { return nil }
                 debugLog("cloud: hear failed: \(error)")
                 self.cloud?.failures += 1
+                let trouble = CloudHearing.trouble(error, service: self.cloudService ?? "AI")
+                let isFatal: Bool
+                if let failure = error as? LingClient.Failure {
+                    switch failure {
+                    case .rateLimited, .invalidKey, .noKey: isFatal = true
+                    case .http(let code) where code == 402 || code == 429: isFatal = true
+                    default: isFatal = false
+                    }
+                } else {
+                    isFatal = false
+                }
+                if (self.cloud?.failures ?? 0) >= 2 || isFatal {
+                    self.setStatus(trouble)
+                    self.onAlert?(trouble)
+                }
                 // The service is down or the key stopped working: listening shouldn't go quiet with it.
                 if (self.cloud?.failures ?? 0) >= 3 {
                     if self.serverHears {
                         // 自定义云端服务重试，不强行降级回未安装离线模型的本机
-                        self.setStatus(L("\(self.cloudService ?? "AI") 正在重试…"))
+                        self.setStatus(trouble)
                     } else if !Recognition.cloudOnly {
                         self.stopCloud()
                     } else {
-                        self.setStatus(CloudHearing.trouble(error, service: self.cloudService ?? "AI"))
+                        self.setStatus(trouble)
                     }
                 }
                 return nil
@@ -1617,6 +1637,7 @@ final class ListenEngine {
 
     /// After a quiet spell the next sentence starts on a clean bar.
     func clearDisplay() {
+        onAlert?(nil)
         segments.removeAll()
         volatileTranslation = ""
         lastVolatileSent = ""

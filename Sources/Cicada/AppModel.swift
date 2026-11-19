@@ -140,6 +140,7 @@ final class AppModel: ObservableObject {
     /// Lines whose voiceprint is still being worked out: no voice yet is not "like no voice".
     @Published private(set) var voicePending: Set<String> = []
     @Published var liveTranslation = ""
+    @Published var activeAlert: String? = nil
     @Published var onboardingStep = 1
     /// Step 3 is showing what skipping the key leaves out (debug: `onboarding:3,skip`).
     @Published var onboardingKeySkip = false
@@ -241,6 +242,10 @@ final class AppModel: ObservableObject {
         listen.onStatus = { [weak self] text in
             self?.status = text
             self?.overlay.setStatus(text)
+        }
+        listen.onAlert = { [weak self] alert in
+            self?.activeAlert = alert
+            self?.overlay.setAlert(alert)
         }
         listen.onStateChange = { [weak self] in self?.refresh() }
         listen.onFinal = { [weak self] seg, duration in self?.heardOnline(seg, duration: duration) }
@@ -764,6 +769,8 @@ final class AppModel: ObservableObject {
         liveRoom = ("", "", "", .distantPast)
         listen.clearDisplay()
         roomListen.clearDisplay()
+        activeAlert = nil
+        overlay.setAlert(nil)
         overlay.setSubtitle(source: "", translation: "", previous: "")
         // The caption under the notes would otherwise show the last meeting's line until someone speaks.
         liveSource = ""
@@ -800,6 +807,8 @@ final class AppModel: ObservableObject {
         autoEnded = false
         endWatch = nil
         setEnding(nil)
+        activeAlert = nil
+        overlay.setAlert(nil)
         diagnostics.end()
         stopRoomSide()
         listen.stop()
@@ -822,6 +831,8 @@ final class AppModel: ObservableObject {
         overlay.hide()
         listen.clearDisplay()
         roomListen.clearDisplay()
+        activeAlert = nil
+        overlay.setAlert(nil)
         overlay.setSubtitle(source: "", translation: "", previous: "")
         lastFinishedLine = ""
         previousFinishedLine = ""

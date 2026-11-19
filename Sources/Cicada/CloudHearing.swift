@@ -33,10 +33,15 @@ enum CloudHearing {
     /// service is erring, not out of reach (AICheck's serverError words).
     static func trouble(_ error: Error, service: String) -> String {
         switch error as? LingClient.Failure {
-        case .invalidKey?: L("key 已失效，到设置 › AI 服务里重填")
-        case .noKey?: L("请先在设置 › AI 服务里填入 Ling key")
-        case .http(let code)? where code >= 500: L("\(service) 暂时出错（HTTP \(code)），稍后再试。")
-        default: L("字幕和纪要等 \(service) 恢复 · 连上后自动继续")
+        case .invalidKey?: L("API Key 已失效，请在设置中重填")
+        case .noKey?: L("请先在设置中填入 API Key")
+        case .rateLimited?: L("\(service) 触发限流 (429)，等待自动重试…")
+        case .http(let code)? where code == 402: L("\(service) 欠费或额度不足 (HTTP 402)")
+        case .http(let code)? where code == 429: L("\(service) 触发限流 (429)，等待自动重试…")
+        case .http(let code)? where code >= 500: L("\(service) 暂时出错（HTTP \(code)），稍后自动重试")
+        case .timeout?: L("\(service) 请求超时，正在自动重试…")
+        case .network?: L("网络连接异常，正在自动重试…")
+        default: L("识别出错，等 \(service) 恢复中 · 自动重试")
         }
     }
 

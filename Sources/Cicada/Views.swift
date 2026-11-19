@@ -845,9 +845,9 @@ struct MainWindowView: View {
     /// 改这句…: the line being rewritten, and what the editor opens with.
     @State private var editingLine: String?
     @State private var editingStart = ""
-    @State private var hoveredLine: String?
     @State private var wordClick = WordClick()
     @State private var liveFollowing = true
+    @State private var scrollTrigger = 0
 
     /// Wide enough for the notes and the bilingual transcript side by side.
     private var sideBySide: Bool { showQuotes && wideEnough }
@@ -901,7 +901,7 @@ struct MainWindowView: View {
         .onChange(of: store.audioFinished) { _, id in if id == current?.id { player.unload(); loadPlayer() } }
         // A click on a line's words: its selectable text takes the mouse before the row's tap.
         .onAppear {
-            wordClick.install(line: { hoveredLine.flatMap { id in editingLine == id ? nil : id } }) { id in
+            wordClick.install(line: { nil }) { id in
                 guard let s = current, player.sessionID == s.id, player.ready,
                       let l = s.lines.first(where: { $0.id == id }) else { return }
                 player.play(from: l.t)
@@ -1141,31 +1141,54 @@ struct MainWindowView: View {
     }
 
     /// 此刻: the sentence being heard, pinned under the page while the meeting is live.
+    /// 点击整行可一键平滑回到此刻（最新句子）并恢复向下跟随。
     @ViewBuilder private var liveNow: some View {
         let src = model.liveSource.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !src.isEmpty || !model.languageAsk.isEmpty || model.modelFetch != nil || model.cloud.listening || model.cloud.back != nil {
-            HStack(alignment: .top, spacing: 14) {
-                HStack(spacing: 6) {
-                    BreathingDot(size: 6)
-                    Text("此刻").font(.ui( 11, weight: .bold)).foregroundStyle(Palette.accentInk)
+        if !src.isEmpty || !model.languageAsk.isEmpty || model.modelFetch != nil || model.cloud.listening || model.cloud.back != nil || model.activeAlert != nil {
+            HStack(alignment: .center, spacing: 14) {
+                HStack(spacing: 7) {
+                    BreathingDot(size: 8)
+                    Text("此刻").font(.ui( 14, weight: .bold)).foregroundStyle(Palette.accentInk)
                 }
-                .frame(width: 52, alignment: .leading).padding(.top, 2)
+                .frame(width: 58, alignment: .leading)
                 VStack(alignment: .leading, spacing: 3) {
-                    Text(src).font(.ui( 13)).foregroundStyle(Palette.secondary)
-                        .lineLimit(2).truncationMode(.head)
-                    // 听不出 replaces the stuck 正在识别语言…; it says what to do instead.
-                    if !model.liveTranslation.isEmpty, model.languageAsk.isEmpty {
-                        Text(model.liveTranslation).font(.ui( 15)).foregroundStyle(Palette.ink)
-                            .lineLimit(2).truncationMode(.head)
+                    if let alert = model.activeAlert {
+                        Text(alert)
+                            .font(.ui( 14, weight: .semibold)).foregroundStyle(Palette.accent)
+                            .lineLimit(2).truncationMode(.tail)
+                    } else {
+                        Text(src.isEmpty ? L("正在倾听…") : src)
+                            .font(.ui( 14, weight: .medium)).foregroundStyle(Palette.ink)
+                            .lineLimit(2).truncationMode(.tail)
                     }
-                    LanguageNotice(model: model).padding(.top, 4)
+                    // 听不出 replaces the stuck 正在识别语言…; it says what to do instead.
+                    if !model.liveTranslation.isEmpty, model.languageAsk.isEmpty, model.activeAlert == nil {
+                        Text(model.liveTranslation).font(.ui( 13)).foregroundStyle(Palette.secondary)
+                            .lineLimit(2).truncationMode(.tail)
+                    }
+                    LanguageNotice(model: model).padding(.top, 2)
                 }
                 Spacer(minLength: 0)
+                if !liveFollowing {
+                    HStack(spacing: 5) {
+                        Text(L("回到此刻")).font(.ui( 12, weight: .bold))
+                        Image(systemName: "arrow.down").font(.ui( 11, weight: .bold))
+                    }
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 12).padding(.vertical, 6)
+                    .background(Capsule().fill(Palette.accent))
+                    .shadow(color: Palette.accent.opacity(0.3), radius: 6, y: 2)
+                }
             }
             .padding(.horizontal, 24).padding(.vertical, 12)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(Palette.accentWash)
             .overlay(alignment: .top) { Rectangle().fill(Palette.accentPale).frame(height: 1) }
+            .contentShape(Rectangle())
+            .onTapGesture {
+                liveFollowing = true
+                scrollTrigger += 1
+            }
         }
     }
 
@@ -1442,9 +1465,14 @@ struct MainWindowView: View {
                     }
                     ForEach(s.lines) { l in
                         lineRow(l, speaker: speakers[l.id], label: speakers.isEmpty || settings.speakerEveryLine || starts.contains(l.id), voices: !speakers.isEmpty, place: both, in: s,
-                                current: l.id == playingLine)
+                                current: l.id == playingLine, voicesMap: voices, speakerNames: precomputedNames)
                             .contextMenu {
                                 Button(L("改这句…")) { editingStart = l.shown; editingLine = l.id }
+                                if let fixes = l.fixes?.filter(\.applied), !fixes.isEmpty {
+                                    ForEach(fixes, id: \.from) { f in
+                                        Button(L("改回原词") + " (\(f.from))") { model.fixes.revert(f, lineID: l.id, in: s.id) }
+                                    }
+                                }
                                 if !speakers.isEmpty, l.speaker == "them" { assignMenu(s, l, voices, names: precomputedNames) }
                             }
                             .id(l.id)
@@ -1467,27 +1495,7 @@ struct MainWindowView: View {
             }
             .overlay(alignment: .bottom) { FixToast(fixes: model.fixes).padding(.bottom, 18) }
             .overlay(alignment: .bottom) {
-                if s.id == store.liveID, !liveFollowing {
-                    Button {
-                        liveFollowing = true
-                        if let last = s.lines.last {
-                            withAnimation { proxy.scrollTo(last.id, anchor: .bottom) }
-                        }
-                    } label: {
-                        HStack(spacing: 8) {
-                            BreathingDot(size: 8)
-                            Text(L("回到此刻")).font(.ui( 14, weight: .bold))
-                            Image(systemName: "arrow.down").font(.ui( 11, weight: .bold))
-                        }
-                        .foregroundStyle(.white).padding(.horizontal, 20).frame(height: 38)
-                        .background(Capsule().fill(Palette.accent))
-                        .shadow(color: Palette.accent.opacity(0.35), radius: 10, y: 4)
-                        .contentShape(Capsule())
-                    }
-                    .buttonStyle(.plain).linkPointer()
-                    .padding(.bottom, 16)
-                    .transition(.opacity.combined(with: .scale(scale: 0.9)))
-                } else if player.sessionID == s.id, !player.following, let id = player.lineID(in: s),
+                if player.sessionID == s.id, !player.following, let id = player.lineID(in: s),
                    let l = s.lines.first(where: { $0.id == id }) {
                     Button { player.follow() } label: {
                         HStack(spacing: 6) {
@@ -1507,6 +1515,11 @@ struct MainWindowView: View {
             }
             .animation(.easeOut(duration: 0.2), value: player.following)
             .animation(.easeOut(duration: 0.2), value: liveFollowing)
+            .onChange(of: scrollTrigger) { _, _ in
+                if s.id == store.liveID, let last = s.lines.last {
+                    withAnimation { proxy.scrollTo(last.id, anchor: .bottom) }
+                }
+            }
             .onChange(of: s.lines.count) { _, _ in
                 if s.id == store.liveID, liveFollowing, let last = s.lines.last {
                     withAnimation { proxy.scrollTo(last.id, anchor: .bottom) }
@@ -1532,21 +1545,17 @@ struct MainWindowView: View {
         }
     }
 
-    private func lineRow(_ l: TranscriptLine, speaker: Int? = nil, label: Bool = true, voices: Bool = false, place: Bool = false, in shownSession: Session? = nil, current: Bool = false) -> some View {
+    private func lineRow(_ l: TranscriptLine, speaker: Int? = nil, label: Bool = true, voices: Bool = false, place: Bool = false, in shownSession: Session? = nil, current: Bool = false, voicesMap: [Int: Int]? = nil, speakerNames: [Int: String]? = nil) -> some View {
         let me = l.speaker == "me"
         let playable = shownSession.map { player.sessionID == $0.id && player.ready } ?? false
-        let hovered = playable && hoveredLine == l.id && editingLine != l.id
         return HStack(alignment: .top, spacing: 16) {
             if playable {
                 // The recording plays from this line (so does a click anywhere on it).
                 Button { player.play(from: l.t) } label: {
-                    HStack(spacing: 3) {
-                        if hovered { Image(systemName: "play.fill").font(.ui( 8)) }
-                        Text(TranscriptExport.clock(l.t))
-                            .font(.ui( 12, weight: current || hovered ? .semibold : .regular).monospacedDigit())
-                    }
-                    .foregroundStyle(current || hovered ? Palette.accent : Palette.link)
-                    .frame(width: 64, alignment: .leading).padding(.top, 1).contentShape(Rectangle())
+                    Text(TranscriptExport.clock(l.t))
+                        .font(.ui( 12, weight: current ? .semibold : .regular).monospacedDigit())
+                        .foregroundStyle(current ? Palette.accent : Palette.link)
+                        .frame(width: 64, alignment: .leading).padding(.top, 1).contentShape(Rectangle())
                 }
                 .buttonStyle(.plain).help(L("从这里播放"))
             } else {
@@ -1559,6 +1568,7 @@ struct MainWindowView: View {
                     if !label {
                     } else if voices, !me, let s = shownSession {
                         // A click on whose line it is: say it was someone else's, or name the voice.
+                        let vMap = voicesMap ?? SpeakerLabels.voiceNumbers(s)
                         Menu {
                             if let v = l.voice {
                                 Button(L("标记人名…")) { model.promptSpeakerName(session: s.id, voice: v) }
@@ -1567,7 +1577,7 @@ struct MainWindowView: View {
                                 }
                                 Divider()
                             }
-                            assignMenu(s, l, SpeakerLabels.voiceNumbers(s))
+                            assignMenu(s, l, vMap, names: speakerNames)
                         } label: {
                             if let speaker { SpeakerTag(number: speaker) } else { UnknownSpeakerTag() }
                         }
@@ -1614,16 +1624,6 @@ struct MainWindowView: View {
                         .foregroundStyle(l.dst == nil ? Palette.tertiary : Palette.ink)
                         .textSelection(.enabled)
                 }
-                // Pointing at a line: what its fixed words were heard as, 改回, and 改这句….
-                if hoveredLine == l.id, editingLine != l.id, let s = shownSession {
-                    HStack(spacing: 8) {
-                        let fixed = (l.fixes ?? []).filter(\.applied).map { (l.id, $0) }
-                        if !fixed.isEmpty { FixedWords(fixes: fixed) { id, f in model.fixes.revert(f, lineID: id, in: s.id) } }
-                        Button(L("改这句…")) { editingStart = l.shown; editingLine = l.id }
-                            .buttonStyle(.plain).font(.ui( 11, weight: .medium)).foregroundStyle(Palette.link)
-                    }
-                    .padding(.top, 2)
-                }
             }
             Spacer(minLength: 0)
             PlayingBars(on: current && player.playing).frame(width: 14).padding(.top, 4)
@@ -1631,11 +1631,10 @@ struct MainWindowView: View {
         // The padding is part of the line, so there is no dead strip between two lines.
         .padding(.vertical, 12)
         .contentShape(Rectangle())
-        .onHover { inside in if inside { hoveredLine = l.id } else if hoveredLine == l.id { hoveredLine = nil } }
         // A click anywhere on the line plays from it; a drag selects text instead (a tap ends without moving).
         .onTapGesture { if playable, editingLine != l.id { player.play(from: l.t) } }
         // The line the recording is playing; a lighter fill under the pointer when a click would play it.
-        .background(RoundedRectangle(cornerRadius: 10).fill(current ? Palette.accentPale : hovered ? Palette.raised : .clear)
+        .background(RoundedRectangle(cornerRadius: 10).fill(current ? Palette.accentPale : .clear)
             .padding(.horizontal, -10))
         .animation(.easeOut(duration: 0.2), value: current)
     }

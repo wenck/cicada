@@ -904,7 +904,12 @@ final class LingClient: ObservableObject {
                 let backupBase = c.hearBackupBase ?? base
                 let backupKey = c.hearBackupKey ?? key
                 debugLog("ling: primary model \(model) failed (\(Self.name(failure))); trying backup model \(backupModel)")
-                return try await executeTranscribe(wav, language: language, base: backupBase, model: backupModel, key: backupKey, timeout: timeout)
+                do {
+                    return try await executeTranscribe(wav, language: language, base: backupBase, model: backupModel, key: backupKey, timeout: timeout)
+                } catch {
+                    debugLog("ling: backup model \(backupModel) also failed: \(error)")
+                    throw error
+                }
             }
             throw failure
         }
