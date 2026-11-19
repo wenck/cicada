@@ -81,9 +81,9 @@ struct AIProvider: Identifiable, Equatable {
         id: .custom, name: L("自定义服务"), base: nil, site: nil,
         textModels: [], voiceModels: [], voices: [], clones: false, hearsAudio: false, spacing: 0.1)
 
-    static let all: [AIProvider] = [.ling, .openrouter, .zenmux, .openai, .custom]
+    static let all: [AIProvider] = [.custom, .openai, .openrouter, .zenmux]
 
-    static func named(_ raw: String) -> AIProvider { all.first { $0.id.rawValue == raw } ?? .ling }
+    static func named(_ raw: String) -> AIProvider { all.first { $0.id.rawValue == raw } ?? .custom }
 
     /// http only on this Mac or the local network (Ollama, LM Studio, a GPU box at home or work, a
     /// Tailscale address); anything else must be https.
@@ -108,10 +108,16 @@ struct AIProvider: Identifiable, Equatable {
     static func isNearby(_ hostOrURL: String) -> Bool {
         let h = host(of: hostOrURL).lowercased()
         if isLocal(h) || h.hasSuffix(".local") { return true }
+        // Common intranet / internal domain suffixes are nearby without requiring network DNS queries.
+        if h.hasSuffix(".srv") || h.hasSuffix(".internal") || h.hasSuffix(".corp")
+            || h.hasSuffix(".lan") || h.hasSuffix(".home") || h.hasSuffix(".intra") || h.hasSuffix(".test") {
+            return true
+        }
         if isPrivateAddress(h) { return true }
         // A name that resolves to a private address is a LAN service too: an internal gateway like
-        // `model.example.srv` is reached over plain http even though the name is not an IP.
-        if !h.contains(":") { return resolvesToPrivateAddress(h) }
+        // `model.example.corp` is reached over plain http even though the name is not an IP.
+        // Must contain at least one dot to be a valid domain; avoids blocking main thread while typing single words.
+        if !h.contains(":"), h.contains(".") { return resolvesToPrivateAddress(h) }
         return false
     }
 

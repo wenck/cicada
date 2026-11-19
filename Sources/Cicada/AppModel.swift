@@ -317,7 +317,7 @@ final class AppModel: ObservableObject {
         translator.onHealth = { [weak self] in self?.translationHealth = $0 }
         translator.proxyHint = { await ProxyProbe.hint() }
 
-        ling.config = { [weak self] in self?.settings.aiConfig ?? AIConfig(provider: .ling, base: AIProvider.ling.base, textModel: "Ling-3.1-flash") }
+        ling.config = { [weak self] in self?.settings.aiConfig ?? AIConfig(provider: .custom, base: nil, textModel: "") }
         listen.translator = translator
         roomListen.translator = translator
         roomListen.voiceMic = voiceMic
@@ -1246,13 +1246,9 @@ final class AppModel: ObservableObject {
 
     /// "改用 Ling" where another service is out of reach: only when a Ling key is already saved,
     /// so the one click works without a trip to the settings.
-    var canSwitchToLing: Bool { settings.provider.id != .ling && AIKey.read("ling") != nil }
+    var canSwitchToLing: Bool { false }
 
-    func switchToLing() {
-        guard canSwitchToLing else { return }
-        settings.aiProvider = AIProvider.Kind.ling.rawValue
-        applyAIService()
-    }
+    func switchToLing() {}
 
     /// Settings changed the AI service, its address or a model: voices follow, the key is checked again.
     func applyAIService() {

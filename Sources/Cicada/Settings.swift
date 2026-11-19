@@ -311,7 +311,7 @@ final class AppSettings: ObservableObject {
         talkKey = Shortcut(stored: defaults.string(forKey: "talkKey")) ?? .defaultTalk
         toggleKey = Shortcut(stored: defaults.string(forKey: "toggleKey")) ?? .defaultToggle
         aiModel = defaults.string(forKey: "aiModel") ?? "Ling-3.1-flash"
-        aiProvider = defaults.string(forKey: "aiProvider") ?? "ling"
+        aiProvider = defaults.string(forKey: "aiProvider").flatMap { $0 == "ling" ? "custom" : $0 } ?? "custom"
         aiModels = defaults.dictionary(forKey: "aiModels") as? [String: String] ?? [:]
         aiVoiceModels = defaults.dictionary(forKey: "aiVoiceModels") as? [String: String] ?? [:]
         aiCustomBase = defaults.string(forKey: "aiCustomBase") ?? ""

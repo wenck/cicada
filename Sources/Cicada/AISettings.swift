@@ -745,15 +745,13 @@ struct AISettingsView: View {
         if provider.clones {
             usageRow(L("你自己的声音"), tag: on ? uses : ling.hasKey ? L("暂不可用") : L("需要 key"), style: on ? .ok : .off,
                      note: on ? L("录一段，让对方听到你的音色") : later)
-        } else {
-            usageRow(L("你自己的声音"), tag: L("只有 Ling"), style: .ling, note: L("换用 Ling 才有"))
         }
         if Recognition.cloudOnly {
             if provider.hearsAudio {
                 usageRow(L("语音识别"), tag: on ? uses : ling.hasKey ? L("暂不可用") : L("需要 key"), style: on ? .ok : .off,
                          note: on ? L("识别和翻译一步完成") : later, divider: false)
             } else {
-                usageRow(L("语音识别"), tag: L("只有 Ling"), style: .ling, note: L("换用 Ling 才有"), divider: false)
+                usageRow(L("语音识别"), tag: L("云端"), style: .off, note: L("需要支持语音识别的模型"), divider: false)
             }
         } else {
             usageRow(L("语音识别"), tag: L("本机"), style: .off, note: L("更快，不花钱"), divider: false)
@@ -833,11 +831,11 @@ struct AIServiceMenu: View {
     @ObservedObject var model: AppModel
     @ObservedObject var settings: AppSettings
 
-    static func title(_ p: AIProvider) -> String { p.id == .custom ? L("其他（兼容 OpenAI）") : p.name }
+    static func title(_ p: AIProvider) -> String { p.id == .custom ? L("自定义服务（兼容 OpenAI）") : p.name }
 
     var body: some View {
         PillMenu(value: Self.title(settings.provider),
-                 options: AIProvider.all.map { ($0.id.rawValue, $0.id == .ling ? "Ling" + L("（推荐）") : Self.title($0)) }) {
+                 options: AIProvider.all.map { ($0.id.rawValue, Self.title($0)) }) {
             guard $0 != settings.aiProvider else { return }
             settings.aiProvider = $0
             model.applyAIService()

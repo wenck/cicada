@@ -775,14 +775,13 @@ struct NotesWindowView: View {
             let p = model.ling.provider
             if untranslated {
                 Text("连不上翻译，新字幕暂时只有原文").font(.system(size: 15, weight: .bold))
-                Text(p.id == .ling ? L("填 Ling key 后不用代理也能翻译，还会整理出纪要。")
-                                   : L("填好 \(p.name) 的 key 后用它翻译，还会整理出纪要。"))
+                Text(L("配置好模型 key 后用它翻译，还会整理出纪要。"))
                     .font(.system(size: 12)).foregroundStyle(Palette.secondary).lineSpacing(2)
             } else {
-                Text(Recognition.cloudOnly ? L("识别语音和生成纪要需要 Ling key") : L("生成纪要需要 API key")).font(.system(size: 15, weight: .bold))
+                Text(Recognition.cloudOnly ? L("识别语音和生成纪要需要模型 API key") : L("生成纪要需要 API key")).font(.system(size: 15, weight: .bold))
                 Text(Recognition.cloudOnly
-                     ? L("填好 \(p.name) 的 key 后，立即开始识别语音、出双语字幕和实时纪要。")
-                     : L("文字记录仍在保存。填好 \(p.name) 的 key 后，会从头整理出整场纪要。"))
+                     ? L("配置好 \(p.name) 的 key 后，立即开始识别语音、出双语字幕和实时纪要。")
+                     : L("文字记录仍在保存。配置好 \(p.name) 的 key 后，会从头整理出整场纪要。"))
                     .font(.system(size: 12)).foregroundStyle(Palette.secondary).lineSpacing(2)
             }
             HStack(spacing: 8) {

@@ -17,54 +17,21 @@ struct OnboardingKeyStep: View {
     @State private var keyHint: (text: String, service: AIProvider.Kind?, key: String)?
     /// Showing another service instead of Ling: follows the setting, so a change made in Settings
     /// while this step is open (or a reused window) never leaves the Ling title over another service.
-    private var other: Bool { settings.provider.id != .ling }
+    private var other: Bool { true }
 
-    private static let others: [AIProvider] = [.openrouter, .zenmux, .openai]
+    private static let others: [AIProvider] = [.custom, .openai, .openrouter, .zenmux]
 
-    static let platform = URL(string: "https://chat.ant-ling.com/platform/api")!
+    static let platform = URL(string: "https://platform.openai.com/api-keys")!
 
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
-            if other && !skipping {
+            if !skipping {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("用其他服务").font(.system(size: 26, weight: .bold)).foregroundStyle(Palette.ink)
-                    Text("纪要和翻译都能用，模型已经选好。").font(.system(size: 14)).foregroundStyle(Palette.secondary)
-                }
-            } else {
-                VStack(alignment: .leading, spacing: 10) {
-                    Text("接上 Ling，一个 key 用上全部功能").font(.system(size: 26, weight: .bold)).foregroundStyle(Palette.ink)
-                    HStack(spacing: 6) {
-                        let items = Recognition.cloudOnly
-                            ? [L("实时翻译字幕"), L("实时纪要"), L("自然的同传声音"), L("用你自己的声音")]
-                            : [L("实时纪要"), L("更准的翻译"), L("自然的同传声音"), L("用你自己的声音")]
-                        ForEach(items, id: \.self) { item in
-                            Text("✓ " + item).font(.system(size: 12, weight: .semibold)).foregroundStyle(Palette.ok)
-                                .padding(.horizontal, 8).padding(.vertical, 3)
-                                .background(RoundedRectangle(cornerRadius: 6).fill(Palette.okPale))
-                        }
-                    }
+                    Text("配置 AI 模型").font(.system(size: 26, weight: .bold)).foregroundStyle(Palette.ink)
+                    Text("支持自定义服务、公司内网网关或常用大模型服务。").font(.system(size: 14)).foregroundStyle(Palette.secondary)
                 }
             }
-            if case .ok = ling.keyState { connected } else if skipping { withoutKey } else if other { otherEntry } else { entry }
-            if !skipping, !isConnected {
-                HStack(spacing: 10) {
-                    if other {
-                        Button(L("‹ 还是用 Ling")) { switchTo(.ling) }.buttonStyle(.plain)
-                            .font(.system(size: 12)).foregroundStyle(Palette.secondary)
-                    } else {
-                        Text("Ling 每月赠送 ¥10 额度").font(.system(size: 12, weight: .semibold)).foregroundStyle(Palette.accentInk)
-                            .padding(.horizontal, 9).padding(.vertical, 3)
-                            .background(Capsule().fill(Palette.accentPale))
-                        Text("约够 10–50 小时会议")
-                            .font(.system(size: 12)).foregroundStyle(Palette.secondary)
-                        Spacer()
-                        if !Recognition.cloudOnly {
-                            Button(L("用不了 Ling？")) { switchTo(.openrouter) }.buttonStyle(.plain)
-                                .font(.system(size: 12)).foregroundStyle(Palette.secondary).underline()
-                        }
-                    }
-                }
-            }
+            if case .ok = ling.keyState { connected } else if skipping { withoutKey } else { otherEntry }
         }
     }
 
@@ -105,14 +72,7 @@ struct OnboardingKeyStep: View {
             }
             keyField(placeholder: L("粘贴 \(p.name) 的 key"))
             status
-            HStack(spacing: 4) {
-                Text("少了：").foregroundStyle(Palette.secondary)
-                Text(p.hasVoices ? L("用你自己的声音") : L("自然的同传声音、你自己的声音")).fontWeight(.semibold).foregroundStyle(Palette.ink)
-                Text("（只有 Ling 支持）").foregroundStyle(Palette.secondary)
-            }
-            .font(.system(size: 12))
-            .padding(.horizontal, 10).padding(.vertical, 8).frame(maxWidth: .infinity, alignment: .leading)
-            .background(RoundedRectangle(cornerRadius: 8).fill(Palette.raised))
+
         }
         .padding(22)
         .background(RoundedRectangle(cornerRadius: 16).fill(Color.white))

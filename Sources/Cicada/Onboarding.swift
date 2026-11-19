@@ -364,8 +364,8 @@ struct OnboardingView: View {
 
     private var stepNames: [String] {
         Recognition.cloudOnly
-            ? [L("听声音"), L("接 Ling"), L("看效果"), L("同声传译")]
-            : [L("听声音"), L("看效果"), L("接 Ling"), L("同声传译")]
+            ? [L("听声音"), L("配置模型"), L("看效果"), L("同声传译")]
+            : [L("听声音"), L("看效果"), L("配置模型"), L("同声传译")]
     }
     private var keyStep: Int { Recognition.cloudOnly ? 2 : 3 }
     private var tryStep: Int { Recognition.cloudOnly ? 3 : 2 }

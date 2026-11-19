@@ -298,17 +298,6 @@ struct AICheck: Equatable {
 
     /// Debug and logs: "reach=ok key=fail(invalidKey) text=skipped".
     var summary: String {
-        steps.map { s -> String in
-            let v: String = switch s.state {
-            case .running: "running"
-            case .ok(let sec): sec.map { "ok(\(String(format: "%.1f", $0))s)" } ?? "ok"
-            case .busy: "busy"
-            case .fail(let r, let code): "fail(\(r.rawValue)\(code.map { " \($0)" } ?? ""))"
-            case .skipped: "skipped"
-            case .untested: "untested"
-            }
-            return "\(s.id.rawValue)=\(v)"
-        }.joined(separator: " ")
         // Built in pieces: one long concatenation times out the type checker on Swift 6.
         var out = steps.map { s -> String in
             let v: String = switch s.state {
