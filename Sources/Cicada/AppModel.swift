@@ -2053,7 +2053,6 @@ final class AppModel: ObservableObject {
         case "releaseModel":
             // releaseModel:<locale> gives back a speech model this app reserved (macOS keeps five per app).
             guard #available(macOS 26, *) else { break }
-            guard #available(macOS 26, *) else { break }
             Task {
                 let ok = await AssetInventory.release(reservedLocale: Locale(identifier: arg.replacingOccurrences(of: "-", with: "_")))
                 debugLog("releaseModel \(arg): \(ok) reserved now=\(await AssetInventory.reservedLocales.map { $0.identifier })")

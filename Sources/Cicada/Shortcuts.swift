@@ -1,5 +1,6 @@
 import AppKit
 import Carbon.HIToolbox
+import os
 
 // MARK: - Shortcut
 
@@ -64,19 +65,17 @@ struct Shortcut: Equatable {
 
     /// Names worked out on the main thread. SwiftUI sometimes builds the panel off it, and the
     /// input-source calls assert the main queue there (a crash since 1.4.0): off it, the last name.
-    private static let nameLock = NSLock()
-    nonisolated(unsafe) private static var names: [Int: String] = [:]
+    private static let names = OSAllocatedUnfairLock(initialState: [Int: String]())
 
     /// The character the key types on the current layout (US letters on non-Latin layouts).
     static func keyName(_ code: Int) -> String {
         if let f = functionKeys[code] { return f }
         if let n = named[code] { return n }
         guard Thread.isMainThread else {
-            nameLock.lock(); defer { nameLock.unlock() }
-            return names[code] ?? "#\(code)"
+            return names.withLock { $0[code] } ?? "#\(code)"
         }
         let name = layoutName(code)
-        nameLock.lock(); names[code] = name; nameLock.unlock()
+        names.withLock { $0[code] = name }
         return name
     }
 

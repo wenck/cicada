@@ -1,6 +1,7 @@
 import CFNetwork
 import Foundation
 import Network
+import os
 
 /// Words the "can't reach the AI service" hint. Read-only on purpose: the app never sets or uses a
 /// proxy of its own (URLSession already goes through the system proxy); it only tells the user
@@ -43,14 +44,14 @@ enum ProxyProbe {
     }
 
     /// Resumes a continuation exactly once across the connection's callbacks and the timeout.
-    private final class Once: @unchecked Sendable {
-        private let lock = NSLock()
-        private var done = false
+    private final class Once: Sendable {
+        private let state = OSAllocatedUnfairLock(initialState: false)
         func take() -> Bool {
-            lock.lock(); defer { lock.unlock() }
-            if done { return false }
-            done = true
-            return true
+            state.withLock { done in
+                if done { return false }
+                done = true
+                return true
+            }
         }
     }
 

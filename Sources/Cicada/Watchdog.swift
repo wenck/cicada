@@ -1,22 +1,28 @@
 import Foundation
+import os
 
 /// Dev builds (and the debug mode): notices the main thread stuck and has `sample` record every
 /// thread's stack while it still is, so a freeze nobody can reproduce on demand (the talk key with
 /// the room mic open) leaves its frame behind. One sample per stall, written next to the log.
-final class MainThreadWatchdog: @unchecked Sendable {
+final class MainThreadWatchdog: Sendable {
     static let shared = MainThreadWatchdog()
 
     /// A main thread silent this long counts as stuck.
     static let stuckAfter = 2.0
 
-    private let lock = NSLock()
-    private var lastPong = Date()
-    private var started = false
-    private var stalled = false
-    private var resumedAt: Date?
+    struct State {
+        var lastPong = Date()
+        var started = false
+        var stalled = false
+        var resumedAt: Date?
+    }
+    private let state = OSAllocatedUnfairLock(initialState: State())
 
     func start() {
-        let first = lock.withLock { () -> Bool in defer { started = true }; return !started }
+        let first = state.withLock { s -> Bool in
+            defer { s.started = true }
+            return !s.started
+        }
         guard first else { return }
         let thread = Thread { [self] in run() }
         thread.name = "com.wquguru.cicada.watchdog"
@@ -32,20 +38,20 @@ final class MainThreadWatchdog: @unchecked Sendable {
             // The first ping to run after a stall marks when the main thread came back: the sample
             // itself takes seconds, so the time this loop next looks is too late.
             DispatchQueue.main.async { [self] in
-                lock.withLock {
-                    if resumedAt == nil, stalled { resumedAt = Date() }
-                    lastPong = Date()
+                state.withLock { s in
+                    if s.resumedAt == nil, s.stalled { s.resumedAt = Date() }
+                    s.lastPong = Date()
                 }
             }
-            let silent = Date().timeIntervalSince(lock.withLock { lastPong })
+            let silent = Date().timeIntervalSince(state.withLock { $0.lastPong })
             if silent >= Self.stuckAfter, stuckSince == nil {
                 stuckSince = Date().addingTimeInterval(-silent)
-                lock.withLock { stalled = true; resumedAt = nil }
+                state.withLock { s in s.stalled = true; s.resumedAt = nil }
                 sample(silentFor: silent)
-            } else if let since = stuckSince, let back = lock.withLock({ resumedAt }) {
+            } else if let since = stuckSince, let back = state.withLock({ $0.resumedAt }) {
                 debugLog(String(format: "watchdog: main thread back after %.1f s", back.timeIntervalSince(since)))
                 stuckSince = nil
-                lock.withLock { stalled = false; resumedAt = nil }
+                state.withLock { s in s.stalled = false; s.resumedAt = nil }
             }
         }
     }

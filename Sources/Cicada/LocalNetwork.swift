@@ -1,5 +1,6 @@
 import Foundation
 import Network
+import os
 
 /// Tells "macOS won't let Cicada reach the local network" apart from "the server is down": both
 /// fail a request the same way, but only one is fixed in System Settings. Asked only after a
@@ -14,7 +15,7 @@ enum LocalNetworkProbe {
         let conn = NWConnection(host: NWEndpoint.Host(host), port: port, using: .tcp)
         let (denied, seen): (Bool, String) = await withCheckedContinuation { cont in
             let once = Once()
-            func finish(_ seen: String) {
+            @Sendable func finish(_ seen: String) {
                 guard once.take() else { return }
                 let denied = conn.currentPath?.unsatisfiedReason == .localNetworkDenied
                 conn.cancel()
@@ -33,14 +34,14 @@ enum LocalNetworkProbe {
         return denied
     }
 
-    private final class Once: @unchecked Sendable {
-        private let lock = NSLock()
-        private var done = false
+    private final class Once: Sendable {
+        private let state = OSAllocatedUnfairLock(initialState: false)
         func take() -> Bool {
-            lock.lock(); defer { lock.unlock() }
-            if done { return false }
-            done = true
-            return true
+            state.withLock { done in
+                if done { return false }
+                done = true
+                return true
+            }
         }
     }
 }
