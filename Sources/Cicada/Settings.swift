@@ -383,13 +383,19 @@ final class AppSettings: ObservableObject {
         aiCustomNotesBase = defaults.string(forKey: "aiCustomNotesBase") ?? ""
         aiCustomHearBackupModel = defaults.string(forKey: "aiCustomHearBackupModel") ?? ""
         aiCustomHearBackupBase = defaults.string(forKey: "aiCustomHearBackupBase") ?? ""
-        let initialAsrPause = defaults.object(forKey: "asrPause") as? Double ?? 0.6
+        let initialAsrPause = (defaults.object(forKey: "asrPause") as? Double)
+            ?? defaults.string(forKey: "asrPause").flatMap(Double.init)
+            ?? 0.6
         asrPause = initialAsrPause
         CloudHearing.configuredPause = initialAsrPause
-        let initialAsrMax = defaults.object(forKey: "asrMaxLength") as? Double ?? 8.0
+        let initialAsrMax = (defaults.object(forKey: "asrMaxLength") as? Double)
+            ?? defaults.string(forKey: "asrMaxLength").flatMap(Double.init)
+            ?? 8.0
         asrMaxLength = initialAsrMax
         CloudHearing.configuredMaxLength = initialAsrMax
-        let initialAsrThrottle = defaults.object(forKey: "asrMinInterval") as? Double ?? 0.0
+        let initialAsrThrottle = (defaults.object(forKey: "asrMinInterval") as? Double)
+            ?? defaults.string(forKey: "asrMinInterval").flatMap(Double.init)
+            ?? 0.0
         asrMinInterval = initialAsrThrottle
         CloudHearing.configuredMinInterval = initialAsrThrottle
         let initialNotesPrompt = defaults.string(forKey: "notesCustomPrompt") ?? ""

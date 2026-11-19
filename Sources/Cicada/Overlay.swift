@@ -107,9 +107,8 @@ final class OverlayController {
         view.source = source
         view.translation = translation
         view.previous = previous
-        let lines = view.neededLines(barWidth: width)
-        if lines != view.transLines, view.dragMode == nil {
-            view.transLines = lines
+        if view.dragMode == nil {
+            view.updateNeededLines(barWidth: width)
         }
         let newHeight = view.barHeight(fontSize: fontSize)
         if oldHeight != newHeight, view.dragMode == nil {
@@ -504,7 +503,8 @@ final class OverlayView: NSView {
     var hover = false
     var snapped = false
     var collapsed = false
-    /// Translation lines the bar is sized for (1 or 2), so a short line leaves no gap.
+    /// Source and translation lines the bar is sized for (1 or 2), so a short line leaves no gap.
+    var srcLines = 1
     var transLines = 1
     var dragMode: Bool?
     var micOn = false
@@ -540,9 +540,9 @@ final class OverlayView: NSView {
         if showPrevious {
             h += line(prevFont(fs)) + 4 * k(fs)
         }
-        // 当前句（高亮原文）
+        // 当前句（高亮原文，支持 1 或 2 行自适应）
         if !srcText.isEmpty {
-            h += line(srcFont(fs)) + (transText.isEmpty ? 0 : 6 * k(fs))
+            h += line(srcFont(fs)) * CGFloat(srcLines) + (transText.isEmpty ? 0 : 6 * k(fs))
         }
         // 译文（仅在非空时占用高度，避免留出多余空白）
         if !transText.isEmpty {
@@ -621,7 +621,7 @@ final class OverlayView: NSView {
             guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
             let attrs: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: color, .paragraphStyle: align]
             let maxH = line(font) * CGFloat(maxLines)
-            let fitted = fitTail(text, attrs: attrs, width: inner.width, maxHeight: maxH + 1)
+            let fitted = fitHead(text, attrs: attrs, width: inner.width, maxHeight: maxH + 1)
             let h = min(maxH, height(of: fitted, attrs: attrs, width: inner.width))
             // Bottom-align within the slot so the newest line sits lowest.
             let rect = NSRect(x: inner.minX, y: y - maxH, width: inner.width, height: h)
@@ -653,9 +653,9 @@ final class OverlayView: NSView {
             draw(prevText, font: prevFont(fs), color: NSColor.white.withAlphaComponent(0.42), maxLines: 1)
             y -= 4 * k(fs)
         }
-        // 当前句：亮色高亮。
+        // 当前句：亮色高亮，支持自适应 1-2 行。
         if !srcText.isEmpty {
-            draw(srcText, font: srcFont(fs), color: NSColor.white.withAlphaComponent(0.95), maxLines: 1)
+            draw(srcText, font: srcFont(fs), color: NSColor.white.withAlphaComponent(0.95), maxLines: srcLines)
             if !transText.isEmpty { y -= 6 * k(fs) }
         }
         draw(translation, font: transFont(fs),
@@ -699,14 +699,34 @@ final class OverlayView: NSView {
         }
     }
 
-    /// How many lines the translation needs at the current width (1 or 2).
-    func neededLines(barWidth: CGFloat) -> Int {
-        let text = translation.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? source : translation
-        guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return 1 }
+    /// Updates line requirements for source and translation (1 or 2 lines each).
+    @discardableResult
+    func updateNeededLines(barWidth: CGFloat) -> Bool {
         let fs = fontSize
-        let attrs: [NSAttributedString.Key: Any] = [.font: transFont(fs)]
         let w = barWidth - 2 * 26 * k(fs)
-        return height(of: text, attrs: attrs, width: w) > line(transFont(fs)) * 1.3 ? 2 : 1
+        let srcText = isStatus ? "" : source.trimmingCharacters(in: .whitespacesAndNewlines)
+        let transText = translation.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        let newSrc: Int
+        if srcText.isEmpty {
+            newSrc = 1
+        } else {
+            let attrs: [NSAttributedString.Key: Any] = [.font: srcFont(fs)]
+            newSrc = height(of: srcText, attrs: attrs, width: w) > line(srcFont(fs)) * 1.25 ? 2 : 1
+        }
+
+        let newTrans: Int
+        if transText.isEmpty {
+            newTrans = 1
+        } else {
+            let attrs: [NSAttributedString.Key: Any] = [.font: transFont(fs)]
+            newTrans = height(of: transText, attrs: attrs, width: w) > line(transFont(fs)) * 1.25 ? 2 : 1
+        }
+
+        let changed = newSrc != srcLines || newTrans != transLines
+        srcLines = newSrc
+        transLines = newTrans
+        return changed
     }
 
     private func height(of s: String, attrs: [NSAttributedString.Key: Any], width: CGFloat) -> CGFloat {
@@ -714,18 +734,18 @@ final class OverlayView: NSView {
                                           options: [.usesLineFragmentOrigin, .usesFontLeading], attributes: attrs).height)
     }
 
-    /// Keeps the end of the text (newest words) and drops the beginning until it fits.
-    private func fitTail(_ text: String, attrs: [NSAttributedString.Key: Any], width: CGFloat, maxHeight: CGFloat) -> String {
+    /// Keeps the beginning of the text and drops the tail until it fits (with trailing "…").
+    private func fitHead(_ text: String, attrs: [NSAttributedString.Key: Any], width: CGFloat, maxHeight: CGFloat) -> String {
         if text.isEmpty || height(of: text, attrs: attrs, width: width) <= maxHeight { return text }
         let count = text.count
         var lo = 0, hi = count
         while lo < hi {
-            let mid = (lo + hi) / 2
+            let mid = (lo + hi + 1) / 2
             let idx = text.index(text.startIndex, offsetBy: mid)
-            if height(of: "…" + String(text[idx...]), attrs: attrs, width: width) <= maxHeight { hi = mid } else { lo = mid + 1 }
+            if height(of: String(text[..<idx]) + "…", attrs: attrs, width: width) <= maxHeight { lo = mid } else { hi = mid - 1 }
         }
-        let finalIdx = text.index(text.startIndex, offsetBy: min(lo, count))
-        return "…" + String(text[finalIdx...])
+        let finalIdx = text.index(text.startIndex, offsetBy: max(0, lo))
+        return String(text[..<finalIdx]) + "…"
     }
 
     // MARK: Mouse
