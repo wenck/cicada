@@ -182,9 +182,7 @@ enum CloudHearing {
         d.append(contentsOf: Array("RIFF".utf8)); u32(36 + bytes); d.append(contentsOf: Array("WAVE".utf8))
         d.append(contentsOf: Array("fmt ".utf8)); u32(16); u16(1); u16(1); u32(16_000); u32(32_000); u16(2); u16(16)
         d.append(contentsOf: Array("data".utf8)); u32(bytes)
-        samples.withUnsafeBufferPointer { buf in
-            for s in buf { withUnsafeBytes(of: s.littleEndian) { d.append(contentsOf: $0) } }
-        }
+        samples.withUnsafeBytes { d.append(contentsOf: $0) }
         return d
     }
 }

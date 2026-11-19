@@ -1,3 +1,4 @@
+import Accelerate
 import AppKit
 import AVFoundation
 import AudioToolbox
@@ -104,9 +105,9 @@ final class AudioRouter: @unchecked Sendable {
     private func process(_ mono: AVAudioPCMBuffer) {
         let n = Int(mono.frameLength)
         guard n > 0, let data = mono.floatChannelData else { return }
-        var sum: Float = 0
-        for i in 0..<n { sum += data[0][i] * data[0][i] }
-        let rms = (sum / Float(n)).squareRoot()
+        var meanSquare: Float = 0
+        vDSP_measqv(data[0], 1, &meanSquare, vDSP_Length(n))
+        let rms = meanSquare.squareRoot()
         peak = max(peak, rms)
         let seconds = Double(n) / mono.format.sampleRate
         // Before the onset is confirmed: the first 30 ms of a remote sentence are already echo in the room.

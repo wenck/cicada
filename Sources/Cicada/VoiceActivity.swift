@@ -1,3 +1,4 @@
+import Accelerate
 import Foundation
 
 /// Speech and silence over time, block by block: what `AudioRouter` knows about pauses, gaps and
@@ -46,15 +47,17 @@ struct VoiceActivity {
     /// noise per block (`VoiceGate.blocksPerSecond`), so it takes whole blocks. Returns whether any
     /// of it is speech.
     mutating func feed(_ samples: UnsafeBufferPointer<Float>, rate: Double, clock: Double, pauses: Bool = true) -> Bool {
+        guard let base = samples.baseAddress else { return false }
         let step = gate.adaptive ? samples.count : max(1, Int(rate / 100))
         var voiced = false
         var i = 0
         while i < samples.count {
             let end = min(samples.count, i + step)
-            var sum: Float = 0
-            for k in i..<end { sum += samples[k] * samples[k] }
-            let rms = (sum / Float(end - i)).squareRoot()
-            if feed(rms: rms, seconds: Double(end - i) / rate, clock: clock + Double(i) / rate, pauses: pauses) { voiced = true }
+            let count = end - i
+            var meanSquare: Float = 0
+            vDSP_measqv(base + i, 1, &meanSquare, vDSP_Length(count))
+            let rms = meanSquare.squareRoot()
+            if feed(rms: rms, seconds: Double(count) / rate, clock: clock + Double(i) / rate, pauses: pauses) { voiced = true }
             i = end
         }
         return voiced
