@@ -22,12 +22,12 @@ final class NotesWindowController: NSObject, NSWindowDelegate {
 
     var isVisible: Bool { panel?.isVisible ?? false }
     /// Not read back from the panel: its hosting view lowers `minSize` to the content's.
-    static let minWidth: CGFloat = 300
+    static var minWidth: CGFloat { UIStyle.pt(300) }
     private static let autosave = "LiveSubsNotes"
 
     var layout: Layout {
-        let w = panel?.frame.width ?? 460
-        return w < 360 ? .card : w >= 760 ? .wide : .sidebar
+        let w = panel?.frame.width ?? UIStyle.pt(460)
+        return w < UIStyle.pt(360) ? .card : w >= UIStyle.pt(760) ? .wide : .sidebar
     }
 
     /// "浮在最上层" (`notesOnTop`, on by default).
@@ -195,7 +195,8 @@ final class NotesWindowController: NSObject, NSWindowDelegate {
     /// The sidebar: docked to the right edge, nearly full height.
     private func defaultFrame() -> NSRect {
         let v = (NSScreen.main ?? NSScreen.screens[0]).visibleFrame
-        return NSRect(x: v.maxX - 460 - 16, y: v.minY + 16, width: 460, height: v.height - 32)
+        let w = UIStyle.pt(460)
+        return NSRect(x: v.maxX - w - 16, y: v.minY + 16, width: w, height: v.height - 32)
     }
 }
 
@@ -236,7 +237,7 @@ struct NotesWindowView: View {
     @State private var now = Date()
     @State private var badgeHover = false
     @State private var badgeHint = false
-    @State private var width: CGFloat = 460
+    @State private var width: CGFloat = UIStyle.pt(460)
     /// "结束" was clicked during a meeting with lines: the confirmation strip is showing.
     @State private var confirmEnd = false
     @State private var languageOpen = false
@@ -255,11 +256,11 @@ struct NotesWindowView: View {
     var body: some View {
         GeometryReader { geo in
             Group {
-                if geo.size.width < 360 {
+                if geo.size.width < UIStyle.pt(360) {
                     card
                 } else {
                     VStack(alignment: .leading, spacing: 0) {
-                        header(wide: geo.size.width >= 760)
+                        header(wide: geo.size.width >= UIStyle.pt(760))
                         meetingBar.padding(.horizontal, 24).padding(.bottom, 4)
                         banner.padding(.horizontal, 24).padding(.bottom, 4)
                         if live { liveAsks.padding(.horizontal, 24).padding(.bottom, 4) }
@@ -269,7 +270,7 @@ struct NotesWindowView: View {
                         if live { LanguageNotice(model: model).padding(.horizontal, 24).padding(.bottom, 8) }
                         // Where the scrolling starts: a hairline, and each column fades in under it (`topFade`).
                         Rectangle().fill(MainWindowView.hairline).frame(height: 1)
-                        if geo.size.width >= 760 {
+                        if geo.size.width >= UIStyle.pt(760) {
                             HStack(alignment: .top, spacing: 0) {
                                 notesPane.frame(maxWidth: .infinity)
                                 Divider()
@@ -281,7 +282,7 @@ struct NotesWindowView: View {
                             transcript.padding(.horizontal, 24).padding(.top, 12)
                         }
                         // The transcript shows what is being said in place; the caption is for the notes tab.
-                        if geo.size.width < 760 && tab == "notes" { caption }
+                        if geo.size.width < UIStyle.pt(760) && tab == "notes" { caption }
                     }
                     // The title bar is transparent: start the header beside its buttons, not below a blank band.
                     .ignoresSafeArea(.container, edges: .top)
@@ -301,7 +302,7 @@ struct NotesWindowView: View {
 
     /// Commands from the app menu (纪要 / 显示 / 编辑).
     private func run(_ command: NotesWindowController.Command) {
-        let card = width < 360
+        let card = width < UIStyle.pt(360)
         switch command {
         case .catchUp:
             // From the full window: what was added in the last three minutes.
@@ -310,18 +311,18 @@ struct NotesWindowView: View {
                 seenItems = items(before: collapsedAt)
             }
             catchUp = true
-            setWidth(320, 420)
+            setWidth(UIStyle.pt(320), UIStyle.pt(420))
         case .search:
-            if card { setWidth(460, 760) }
+            if card { setWidth(UIStyle.pt(460), UIStyle.pt(760)) }
             tab = "transcript"
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { searchFocused = true }
         case .layout(.card):
             guard !card else { return }
             collapse()
         case .layout(.sidebar):
-            setWidth(460, card ? 760 : nil)
+            setWidth(UIStyle.pt(460), card ? UIStyle.pt(760) : nil)
         case .layout(.wide):
-            setWidth(820, card ? 760 : nil)
+            setWidth(UIStyle.pt(820), card ? UIStyle.pt(760) : nil)
         }
     }
 
@@ -329,7 +330,7 @@ struct NotesWindowView: View {
         collapsedAt = elapsed
         seenItems = items(before: .infinity)
         catchUp = false
-        setWidth(320, 230)
+        setWidth(UIStyle.pt(320), UIStyle.pt(230))
     }
 
     /// Topic titles and points of the current notes said before a time (all of them for `.infinity`).
@@ -350,13 +351,13 @@ struct NotesWindowView: View {
             // narrow window, and "Listening · 00:09" or "Live notes" broke onto two lines in English.
             VStack(alignment: .leading, spacing: 6) {
                 HStack(alignment: .center, spacing: 4) {
-                    Text(live || session == nil ? L("实时纪要") : L("会议纪要")).font(.system(size: 24, weight: .bold))
+                    Text(live || session == nil ? L("实时纪要") : L("会议纪要")).font(.ui( 24, weight: .bold))
                         .lineLimit(1).minimumScaleFactor(0.75)
                     Spacer(minLength: 8)
                     if live {
                         MicButton(model: model, settings: settings, inHeader: true).padding(.trailing, 2)
                         Button(action: askToEnd) {
-                            Text("结束").font(.system(size: 12, weight: .semibold)).foregroundStyle(Palette.ink)
+                            Text("结束").font(.ui( 12, weight: .semibold)).foregroundStyle(Palette.ink)
                                 .padding(.horizontal, 12).frame(height: 28)
                                 .overlay(RoundedRectangle(cornerRadius: 7).stroke(Palette.line, lineWidth: 1))
                                 .contentShape(Rectangle())
@@ -364,7 +365,7 @@ struct NotesWindowView: View {
                         .buttonStyle(.plain).help("结束这场会议").padding(.trailing, 4)
                     }
                     iconButton(wide ? "rectangle.split.2x1.fill" : "rectangle.split.2x1", help: wide ? L("收窄") : L("纪要和原话并排")) {
-                        setWidth(wide ? 460 : 820, nil)
+                        setWidth(wide ? UIStyle.pt(460) : UIStyle.pt(820), nil)
                     }
                     iconButton("minus", help: L("收成小卡")) { collapse() }
                 }
@@ -374,7 +375,7 @@ struct NotesWindowView: View {
                 HStack(alignment: .top, spacing: 6) {
                     FlowLayout(spacing: 6) {
                         if live { LiveDot().frame(height: 22) }
-                        Text(statusLine).font(.system(size: 12)).foregroundStyle(Palette.tertiary).frame(height: 22)
+                        Text(statusLine).font(.ui( 12)).foregroundStyle(Palette.tertiary).frame(height: 22)
                         if live {
                             dotSeparator
                             languageLink
@@ -383,7 +384,7 @@ struct NotesWindowView: View {
                             dotSeparator
                             HStack(spacing: 5) {
                                 Spinner(size: 10)
-                                Text("整理中").font(.system(size: 12)).foregroundStyle(Palette.tertiary)
+                                Text("整理中").font(.ui( 12)).foregroundStyle(Palette.tertiary)
                             }
                             .frame(height: 22)
                         }
@@ -431,7 +432,7 @@ struct NotesWindowView: View {
         .overlay(alignment: .trailing) {
             if badgeHint {
                 Text(on ? L("对方可见 · 点击关闭") : L("仅自己可见 · 点击共享"))
-                    .font(.system(size: 11)).foregroundStyle(.white).lineLimit(1).fixedSize()
+                    .font(.ui( 11)).foregroundStyle(.white).lineLimit(1).fixedSize()
                     .padding(.horizontal, 8).frame(height: 20)
                     .background(Capsule().fill(Palette.ink.opacity(0.88)))
                     .offset(x: -28).allowsHitTesting(false).transition(.opacity)
@@ -444,14 +445,14 @@ struct NotesWindowView: View {
 
     private var searchField: some View {
         HStack(spacing: 6) {
-            Image(systemName: "magnifyingglass").font(.system(size: 13)).foregroundStyle(Palette.tertiary)
-            TextField("在文字记录中搜索  ⌘F", text: $query).textFieldStyle(.plain).font(.system(size: 13))
+            Image(systemName: "magnifyingglass").font(.ui( 13)).foregroundStyle(Palette.tertiary)
+            TextField("在文字记录中搜索  ⌘F", text: $query).textFieldStyle(.plain).font(.ui( 13))
                 .focused($searchFocused)
                 .onSubmit { step(1) }
                 .onChange(of: query) { _, _ in matchIndex = 0 }
             if !query.isEmpty {
                 Text(matches.isEmpty ? L("无结果") : "\(currentIndex + 1) / \(matches.count)")
-                    .font(.system(size: 12).monospacedDigit()).foregroundStyle(Palette.tertiary)
+                    .font(.ui( 12).monospacedDigit()).foregroundStyle(Palette.tertiary)
                 iconButton("chevron.up", help: L("上一个")) { step(-1) }.disabled(matches.isEmpty)
                 iconButton("chevron.down", help: L("下一个")) { step(1) }.disabled(matches.isEmpty)
                 iconButton("xmark", help: L("清除")) { query = "" }
@@ -493,7 +494,7 @@ struct NotesWindowView: View {
 
     private func segment(_ title: String, _ id: String) -> some View {
         Button { tab = id } label: {
-            Text(title).font(.system(size: 13, weight: tab == id ? .semibold : .regular))
+            Text(title).font(.ui( 13, weight: tab == id ? .semibold : .regular))
                 .foregroundStyle(tab == id ? Palette.ink : Palette.secondary)
                 .frame(maxWidth: .infinity).frame(height: 30)
                 .background(RoundedRectangle(cornerRadius: 9).fill(tab == id ? Color.white : .clear)
@@ -505,7 +506,7 @@ struct NotesWindowView: View {
 
     private func iconButton(_ name: String, help: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            Image(systemName: name).font(.system(size: 13)).foregroundStyle(Palette.secondary)
+            Image(systemName: name).font(.ui( 13)).foregroundStyle(Palette.secondary)
                 .frame(width: 30, height: 30).contentShape(Rectangle())
         }
         .buttonStyle(.plain).help(help).accessibilityLabel(help)
@@ -535,7 +536,7 @@ struct NotesWindowView: View {
         let from = model.meetingLanguage(store.liveID).map(targetName) ?? L("自动")
         return Button { languageOpen.toggle() } label: {
             Text("\(from) → \(targetName(model.notesLanguageCode(id)))")
-                .font(.system(size: 12)).foregroundStyle(Palette.secondary)
+                .font(.ui( 12)).foregroundStyle(Palette.secondary)
                 .underline(color: Palette.line)
                 .frame(height: 22).contentShape(Rectangle())
         }
@@ -543,7 +544,7 @@ struct NotesWindowView: View {
     }
 
     private var dotSeparator: some View {
-        Text("·").font(.system(size: 12)).foregroundStyle(Palette.tertiary).frame(height: 22)
+        Text("·").font(.ui( 12)).foregroundStyle(Palette.tertiary).frame(height: 22)
     }
 
     private func languageCard(_ id: String) -> some View {
@@ -552,32 +553,32 @@ struct NotesWindowView: View {
         return VStack(alignment: .leading, spacing: 14) {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 3) {
-                    Text("这场会议").font(.system(size: 14, weight: .bold))
-                    Text("只改这一场，默认值在 设置 › 语言").font(.system(size: 12)).foregroundStyle(Palette.tertiary)
+                    Text("这场会议").font(.ui( 14, weight: .bold))
+                    Text("只改这一场，默认值在 设置 › 语言").font(.ui( 12)).foregroundStyle(Palette.tertiary)
                 }
                 Spacer()
                 iconButton("xmark", help: L("收起")) { languageOpen = false }
             }
             VStack(alignment: .leading, spacing: 6) {
-                Text("对方说").font(.system(size: 12, weight: .semibold)).foregroundStyle(Palette.secondary)
-                Text(source.map(targetName) ?? L("还没听出来")).font(.system(size: 13))
+                Text("对方说").font(.ui( 12, weight: .semibold)).foregroundStyle(Palette.secondary)
+                Text(source.map(targetName) ?? L("还没听出来")).font(.ui( 13))
             }
             VStack(alignment: .leading, spacing: 6) {
-                Text("字幕").font(.system(size: 12, weight: .semibold)).foregroundStyle(Palette.secondary)
+                Text("字幕").font(.ui( 12, weight: .semibold)).foregroundStyle(Palette.secondary)
                 Segments(options: [("both", L("双语")), ("translation", L("只看译文")), ("original", L("只看原文"))],
                          value: model.subtitles, fill: true) { model.setSubtitles($0, meetingOnly: true) }
             }
             VStack(alignment: .leading, spacing: 6) {
-                Text("纪要").font(.system(size: 12, weight: .semibold)).foregroundStyle(Palette.secondary)
+                Text("纪要").font(.ui( 12, weight: .semibold)).foregroundStyle(Palette.secondary)
                 Segments(options: [("mine", targetName(mine)), ("source", source.map { L("\(targetName($0))（原文）") } ?? L("会议原文"))],
                          value: model.notesChoice(id), fill: true) { model.setNotesLanguage($0, meetingOnly: true) }
-                Text("换了以后会马上用新语言重写纪要").font(.system(size: 12)).foregroundStyle(Palette.tertiary)
+                Text("换了以后会马上用新语言重写纪要").font(.ui( 12)).foregroundStyle(Palette.tertiary)
             }
             Button("打开语言设置") {
                 languageOpen = false
                 model.openSettings(.language)
             }
-            .buttonStyle(.plain).font(.system(size: 12)).foregroundStyle(Palette.accentInk)
+            .buttonStyle(.plain).font(.ui( 12)).foregroundStyle(Palette.accentInk)
         }
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -601,9 +602,9 @@ struct NotesWindowView: View {
             if languageOpen && !confirmEnd { languageCard(session?.id ?? "") }
             if confirmEnd {
                 VStack(alignment: .leading, spacing: 10) {
-                    Text("结束这场会议？").font(.system(size: 14, weight: .bold))
+                    Text("结束这场会议？").font(.ui( 14, weight: .bold))
                     Text("已记录 \(NotesEngine.clock(elapsed)) · \(heard) 句。结束后停止收听，并整理一份完整版纪要。")
-                        .font(.system(size: 12)).foregroundStyle(Palette.secondary).lineSpacing(2)
+                        .font(.ui( 12)).foregroundStyle(Palette.secondary).lineSpacing(2)
                         .fixedSize(horizontal: false, vertical: true)
                     HStack(spacing: 8) {
                         SoftButton(L("继续记录")) { confirmEnd = false }
@@ -626,7 +627,7 @@ struct NotesWindowView: View {
                     } else if session != nil {
                         Image(systemName: "checkmark.circle.fill").foregroundStyle(Palette.accent)
                     }
-                    Text(endedText).font(.system(size: 13, weight: .semibold)).lineLimit(2)
+                    Text(endedText).font(.ui( 13, weight: .semibold)).lineLimit(2)
                 }
                 HStack(spacing: 8) {
                     if let id = session?.id, let other = otherNotesLanguage(id) {
@@ -739,8 +740,8 @@ struct NotesWindowView: View {
     private func ask<Buttons: View>(_ title: String, _ detail: String, @ViewBuilder buttons: () -> Buttons) -> some View {
         HStack(spacing: 10) {
             VStack(alignment: .leading, spacing: 2) {
-                Text(title).font(.system(size: 13, weight: .semibold)).foregroundStyle(Palette.ink)
-                Text(detail).font(.system(size: 11)).foregroundStyle(Palette.secondary)
+                Text(title).font(.ui( 13, weight: .semibold)).foregroundStyle(Palette.ink)
+                Text(detail).font(.ui( 11)).foregroundStyle(Palette.secondary)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             buttons()
@@ -774,19 +775,19 @@ struct NotesWindowView: View {
         VStack(alignment: .leading, spacing: 10) {
             let p = model.ling.provider
             if untranslated {
-                Text("连不上翻译，新字幕暂时只有原文").font(.system(size: 15, weight: .bold))
+                Text("连不上翻译，新字幕暂时只有原文").font(.ui( 15, weight: .bold))
                 Text(L("配置好模型 key 后用它翻译，还会整理出纪要。"))
-                    .font(.system(size: 12)).foregroundStyle(Palette.secondary).lineSpacing(2)
+                    .font(.ui( 12)).foregroundStyle(Palette.secondary).lineSpacing(2)
             } else {
-                Text(Recognition.cloudOnly ? L("识别语音和生成纪要需要模型 API key") : L("生成纪要需要 API key")).font(.system(size: 15, weight: .bold))
+                Text(Recognition.cloudOnly ? L("识别语音和生成纪要需要模型 API key") : L("生成纪要需要 API key")).font(.ui( 15, weight: .bold))
                 Text(Recognition.cloudOnly
                      ? L("配置好 \(p.name) 的 key 后，立即开始识别语音、出双语字幕和实时纪要。")
                      : L("文字记录仍在保存。配置好 \(p.name) 的 key 后，会从头整理出整场纪要。"))
-                    .font(.system(size: 12)).foregroundStyle(Palette.secondary).lineSpacing(2)
+                    .font(.ui( 12)).foregroundStyle(Palette.secondary).lineSpacing(2)
             }
             HStack(spacing: 8) {
                 SecureField("sk-…", text: $keyDraft)
-                    .textFieldStyle(.plain).font(.system(size: 13, design: .monospaced))
+                    .textFieldStyle(.plain).font(.ui( 13, design: .monospaced))
                     .padding(.horizontal, 10).frame(height: 34)
                     .background(RoundedRectangle(cornerRadius: 9).fill(Color.white))
                     .overlay(RoundedRectangle(cornerRadius: 9).stroke(Palette.line, lineWidth: 1))
@@ -801,7 +802,7 @@ struct NotesWindowView: View {
                     Button(L("怎么设置代理 ↗")) { NSWorkspace.shared.open(ProxyProbe.helpURL) }
                 }
             }
-            .buttonStyle(.plain).font(.system(size: 12)).foregroundStyle(Palette.secondary)
+            .buttonStyle(.plain).font(.ui( 12)).foregroundStyle(Palette.secondary)
         }
         .padding(16)
         .background(RoundedRectangle(cornerRadius: 16).fill(Palette.raised))
@@ -840,7 +841,7 @@ struct NotesWindowView: View {
             VStack {
                 Spacer()
                 Text(session == nil ? L("没有进行中的会议") : L("这场会议还没有纪要"))
-                    .font(.system(size: 13)).foregroundStyle(Palette.tertiary)
+                    .font(.ui( 13)).foregroundStyle(Palette.tertiary)
                 Spacer()
                 Spacer()
             }
@@ -929,10 +930,10 @@ struct NotesWindowView: View {
         if live, !shown.source.isEmpty || !shown.translation.isEmpty {
             VStack(alignment: .leading, spacing: 3) {
                 if !shown.source.isEmpty {
-                    Text(shown.source).font(.system(size: 12)).foregroundStyle(Color(white: 0.74)).lineLimit(2)
+                    Text(shown.source).font(.ui( 12)).foregroundStyle(Color(white: 0.74)).lineLimit(2)
                 }
                 if !shown.translation.isEmpty {
-                    Text(shown.translation).font(.system(size: 14, weight: .semibold)).foregroundStyle(.white).lineLimit(3)
+                    Text(shown.translation).font(.ui( 14, weight: .semibold)).foregroundStyle(.white).lineLimit(3)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -949,66 +950,66 @@ struct NotesWindowView: View {
             HStack(spacing: 6) {
                 if catchUp {
                     Text("收起之后 · \(NotesEngine.clock(collapsedAt)) – \(NotesEngine.clock(elapsed))")
-                        .font(.system(size: 12).monospacedDigit()).foregroundStyle(Palette.tertiary)
+                        .font(.ui( 12).monospacedDigit()).foregroundStyle(Palette.tertiary)
                 } else {
                     if live { LiveDot() }
                     Text(currentTopic.map { (live ? L("正在讲 · ") : L("最后一个议题 · ")) + L("\(NotesEngine.clock($0.start)) 起") } ?? (live ? L("正在记录") : L("实时纪要")))
-                        .font(.system(size: 12)).foregroundStyle(Palette.tertiary)
+                        .font(.ui( 12)).foregroundStyle(Palette.tertiary)
                 }
                 Spacer()
                 capturableBadge
-                iconButton("arrow.up.left.and.arrow.down.right", help: L("展开纪要")) { setWidth(460, 760) }
+                iconButton("arrow.up.left.and.arrow.down.right", help: L("展开纪要")) { setWidth(UIStyle.pt(460), UIStyle.pt(760)) }
             }
             if live, let p = model.ending {
                 MeetingEndingStrip(model: model, pending: p, compact: true)
                 Spacer(minLength: 0)
             } else if catchUp {
-                Text("这 \(span) 讲了").font(.system(size: 17, weight: .bold))
+                Text("这 \(span) 讲了").font(.ui(17, weight: .bold))
                 ScrollView {
                     VStack(alignment: .leading, spacing: 12) {
                         ForEach(added, id: \.topic.id) { item in
                             VStack(alignment: .leading, spacing: 5) {
                                 HStack(alignment: .firstTextBaseline, spacing: 8) {
-                                    Text(NotesEngine.clock(item.topic.start)).font(.system(size: 12).monospacedDigit())
-                                        .foregroundStyle(Palette.tertiary).frame(width: 38, alignment: .leading)
-                                    Text(item.topic.title).font(.system(size: 14, weight: .bold))
+                                    Text(NotesEngine.clock(item.topic.start)).font(.ui(12).monospacedDigit())
+                                        .foregroundStyle(Palette.tertiary).frame(width: UIStyle.pt(38), alignment: .leading)
+                                    Text(item.topic.title).font(.ui(14, weight: .bold))
                                 }
                                 if !item.points.isEmpty {
-                                    Text(item.points.joined(separator: "；")).font(.system(size: 13))
-                                        .foregroundStyle(Palette.secondary).lineSpacing(2).padding(.leading, 46)
+                                    Text(item.points.joined(separator: "；")).font(.ui(13))
+                                        .foregroundStyle(Palette.secondary).lineSpacing(2).padding(.leading, UIStyle.pt(46))
                                         .fixedSize(horizontal: false, vertical: true)
                                 }
                             }
                         }
                         if added.isEmpty {
-                            Text("纪要里还没有新内容").font(.system(size: 13)).foregroundStyle(Palette.tertiary)
+                            Text("纪要里还没有新内容").font(.ui(13)).foregroundStyle(Palette.tertiary)
                         }
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 HStack(spacing: 8) {
-                    SoftButton(L("展开纪要"), dark: true) { setWidth(460, 760) }
+                    SoftButton(L("展开纪要"), dark: true) { setWidth(UIStyle.pt(460), UIStyle.pt(760)) }
                     SoftButton(L("看过了")) {
                         catchUp = false
                         collapsedAt = elapsed
                         seenItems = items(before: .infinity)
-                        setWidth(320, 230)
+                        setWidth(UIStyle.pt(320), UIStyle.pt(230))
                     }
                 }
             } else {
                 Text(currentTopic?.title ?? (!live ? L("还没有纪要") : heard == 0 ? L("正在听") : L("正在生成纪要…")))
-                    .font(.system(size: 17, weight: .bold)).lineLimit(2)
+                    .font(.ui(17, weight: .bold)).lineLimit(2)
                 if addedCount.points == 0 && addedCount.topics == 0, let last = currentTopic?.points.last {
-                    Text(last).font(.system(size: 13)).foregroundStyle(Palette.secondary).lineLimit(2)
+                    Text(last).font(.ui(13)).foregroundStyle(Palette.secondary).lineLimit(2)
                 }
                 Spacer(minLength: 0)
                 if addedCount.topics + addedCount.points > 0 {
                     // Only says something when there is something new.
-                    Button { catchUp = true; setWidth(320, 420) } label: {
+                    Button { catchUp = true; setWidth(UIStyle.pt(320), UIStyle.pt(420)) } label: {
                         HStack {
-                            Text(addedLabel).font(.system(size: 13, weight: .semibold)).lineLimit(1)
+                            Text(addedLabel).font(.ui( 13, weight: .semibold)).lineLimit(1)
                             Spacer(minLength: 4)
-                            Image(systemName: "chevron.right").font(.system(size: 12, weight: .bold))
+                            Image(systemName: "chevron.right").font(.ui( 12, weight: .bold))
                         }
                         .foregroundStyle(Palette.accentInk)
                         .padding(.horizontal, 14).frame(height: 40)
@@ -1018,7 +1019,7 @@ struct NotesWindowView: View {
                     .buttonStyle(.plain)
                 } else if collapsedAt > 0 || live {
                     Text(L("收起 \(span) · ") + (live ? L("还在讲这个") : L("没有新内容")))
-                        .font(.system(size: 12)).foregroundStyle(Palette.tertiary)
+                        .font(.ui( 12)).foregroundStyle(Palette.tertiary)
                 }
             }
         }

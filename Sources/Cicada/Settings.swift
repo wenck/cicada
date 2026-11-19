@@ -104,6 +104,13 @@ final class AppSettings: ObservableObject {
     @Published var displayMode: String {
         didSet { save() }
     }
+    /// UI font scale: "normal" (100%), "large" (125%, default for 2K/4K), "xlarge" (140%).
+    @Published var uiScale: String {
+        didSet {
+            UIStyle.update(uiScale)
+            save()
+        }
+    }
     /// The voice the room hears, per language ("en" → "ming:US_Emma", "system:<id>" or "clone").
     /// A language not listed uses `VoiceCatalog.defaultID`.
     @Published var speakVoices: [String: String] {
@@ -324,6 +331,9 @@ final class AppSettings: ObservableObject {
         aiCustomNotesOwn = defaults.bool(forKey: "aiCustomNotesOwn")
         aiCustomNotesBase = defaults.string(forKey: "aiCustomNotesBase") ?? ""
         displayMode = defaults.string(forKey: "displayMode") ?? "notes"
+        let initialUIScale = defaults.string(forKey: "uiScale") ?? "large"
+        uiScale = initialUIScale
+        UIStyle.update(initialUIScale)
         speakVoices = defaults.dictionary(forKey: "speakVoices") as? [String: String] ?? [:]
         endWithApp = defaults.object(forKey: "endWithApp") as? Bool ?? true
         showInDock = defaults.object(forKey: "showInDock") as? Bool ?? true
@@ -389,6 +399,7 @@ final class AppSettings: ObservableObject {
         defaults.set(aiCustomNotesOwn, forKey: "aiCustomNotesOwn")
         defaults.set(aiCustomNotesBase, forKey: "aiCustomNotesBase")
         defaults.set(displayMode, forKey: "displayMode")
+        defaults.set(uiScale, forKey: "uiScale")
         defaults.set(speakVoices, forKey: "speakVoices")
         defaults.set(endWithApp, forKey: "endWithApp")
         defaults.set(showInDock, forKey: "showInDock")

@@ -41,19 +41,19 @@ struct NotesContentView: View {
     private var cards: some View {
         VStack(alignment: .leading, spacing: document ? 32 : 18) {
             if document && !notes.summary.isEmpty {
-                Text(notes.summary).font(.system(size: 17)).lineSpacing(7).foregroundStyle(Palette.ink.opacity(0.9))
+                Text(notes.summary).font(.ui( 17)).lineSpacing(7).foregroundStyle(Palette.ink.opacity(0.9))
                     .textSelection(.enabled).fixedSize(horizontal: false, vertical: true)
             } else if !notes.summary.isEmpty {
                 VStack(alignment: .leading, spacing: 8) {
                     HStack(spacing: 8) {
-                        Text("总结").font(.system(size: 15, weight: .bold))
+                        Text("总结").font(.ui( 15, weight: .bold))
                         if summaryJustChanged { Tag(L("刚更新"), live: true) }
                         Spacer()
                         if notes.final { Tag(L("完整版")) } else if live {
                             Tag(coveredUntil.map { L("速记版 · 到 \(NotesEngine.clock($0))") } ?? L("速记版"))
                         }
                     }
-                    Text(notes.summary).font(.system(size: 14)).lineSpacing(4).textSelection(.enabled)
+                    Text(notes.summary).font(.ui( 14)).lineSpacing(4).textSelection(.enabled)
                 }
                 .padding(.horizontal, 18).padding(.vertical, 16)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -104,7 +104,7 @@ struct NotesContentView: View {
     @ViewBuilder
     private func title(_ text: String) -> some View {
         if document {
-            Text(text).font(.system(size: 13, weight: .semibold)).foregroundStyle(Palette.secondary).padding(.bottom, 2)
+            Text(text).font(.ui( 13, weight: .semibold)).foregroundStyle(Palette.secondary).padding(.bottom, 2)
         } else {
             SectionTitle(text)
         }
@@ -118,14 +118,14 @@ struct NotesContentView: View {
             if document && i > 0 { Divider() }
             HStack(alignment: .firstTextBaseline, spacing: 10) {
                 if todo {
-                    Image(systemName: "circle").font(.system(size: document ? 13 : 11)).foregroundStyle(Palette.tertiary)
+                    Image(systemName: "circle").font(.ui( document ? 13 : 11)).foregroundStyle(Palette.tertiary)
                 } else if document {
                     Circle().fill(Palette.ink.opacity(0.55)).frame(width: 5, height: 5)
                         .alignmentGuide(.firstTextBaseline) { $0[.bottom] + 4 }
                         .frame(width: 13)
                 }
                 Text(item.withOwner)
-                    .font(.system(size: 14)).lineSpacing(2)
+                    .font(.ui( 14)).lineSpacing(2)
                     .foregroundStyle(item.support == 0 ? Palette.tertiary : Palette.ink)
                     .frame(maxWidth: .infinity, alignment: .leading)
                 if item.support == 0 {
@@ -165,7 +165,7 @@ private struct DocumentNotesView: View {
             if !items.isEmpty {
                 VStack(alignment: .leading, spacing: 8) {
                     Text(notes.todos.isEmpty ? L("结论") : L("结论和待办"))
-                        .font(.system(size: 12, weight: .medium)).foregroundStyle(Palette.secondary)
+                        .font(.ui( 12, weight: .medium)).foregroundStyle(Palette.secondary)
                         .padding(.bottom, 2)
                     ForEach(Array(items.enumerated()), id: \.offset) { i, item in
                         let todo = i >= notes.conclusions.count
@@ -193,7 +193,7 @@ private struct DocumentNotesView: View {
 
             if !notes.topics.isEmpty {
                 VStack(alignment: .leading, spacing: 0) {
-                    Text("议题").font(.system(size: 12, weight: .medium)).foregroundStyle(Palette.tertiary).padding(.bottom, 8)
+                    Text("议题").font(.ui( 12, weight: .medium)).foregroundStyle(Palette.tertiary).padding(.bottom, 8)
                     ForEach(Array(notes.topics.enumerated()), id: \.element.id) { i, topic in
                         let current = live && i == notes.topics.count - 1
                         Rectangle().fill(MainWindowView.hairline).frame(height: 1)
@@ -208,7 +208,7 @@ private struct DocumentNotesView: View {
 
             if !notes.terms.isEmpty {
                 VStack(alignment: .leading, spacing: 10) {
-                    Text("人名和术语").font(.system(size: 12, weight: .medium)).foregroundStyle(Palette.tertiary)
+                    Text("人名和术语").font(.ui( 12, weight: .medium)).foregroundStyle(Palette.tertiary)
                     TermChips(terms: notes.terms, showHeard: false)
                 }
             }
@@ -216,7 +216,7 @@ private struct DocumentNotesView: View {
     }
 
     private var summaryText: some View {
-        Text(notes.summary).font(.system(size: 15)).lineSpacing(9).foregroundStyle(Palette.body)
+        Text(notes.summary).font(.ui( 15)).lineSpacing(9).foregroundStyle(Palette.body)
             .fixedSize(horizontal: false, vertical: true)
             .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -231,7 +231,7 @@ private struct DocumentNotesView: View {
         if let editing {
             HStack(alignment: .firstTextBaseline, spacing: 8) {
                 content()
-                Image(systemName: "pencil").font(.system(size: 12)).foregroundStyle(Palette.tertiary)
+                Image(systemName: "pencil").font(.ui( 12)).foregroundStyle(Palette.tertiary)
                     .opacity(hovered == target ? 1 : 0).accessibilityHidden(true)
             }
             .padding(.horizontal, inset).padding(.vertical, 4)
@@ -263,18 +263,18 @@ private struct DocumentNotesView: View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(alignment: .center, spacing: 8) {
                 Group {
-                    if todo { Image(systemName: "circle").font(.system(size: 11)) } else { Text("\(index)").font(.system(size: 12).monospacedDigit()) }
+                    if todo { Image(systemName: "circle").font(.ui( 11)) } else { Text("\(index)").font(.ui( 12).monospacedDigit()) }
                 }
                 .fontWeight(.semibold).foregroundStyle(Palette.link).frame(width: 16, alignment: .leading)
                 fieldFrame(TextField(todo ? L("待办") : L("结论"), text: $draft, axis: .vertical)
-                    .font(.system(size: 15)).lineLimit(1...4)
+                    .font(.ui( 15)).lineLimit(1...4)
                     .focused($focused)
                     .padding(.horizontal, 10).padding(.vertical, 8)
                     .onSubmit(commit))
                 if todo {
                     TextField(L("负责人"), text: $draftOwner)
                         .textFieldStyle(.plain).focusEffectDisabled()
-                        .font(.system(size: 12))
+                        .font(.ui( 12))
                         .padding(.horizontal, 8).frame(width: 110, height: 28)
                         .background(RoundedRectangle(cornerRadius: 7).fill(Color.white))
                         .overlay(RoundedRectangle(cornerRadius: 7).stroke(Palette.line, lineWidth: 1))
@@ -282,10 +282,10 @@ private struct DocumentNotesView: View {
                 }
             }
             HStack(spacing: 14) {
-                Text("⏎ 保存 · esc 取消").font(.system(size: 11)).foregroundStyle(Palette.tertiary)
+                Text("⏎ 保存 · esc 取消").font(.ui( 11)).foregroundStyle(Palette.tertiary)
                 Spacer()
                 Button(L("删除这条")) { draft = ""; commit() }
-                    .buttonStyle(.plain).font(.system(size: 12)).foregroundStyle(Palette.accentInk)
+                    .buttonStyle(.plain).font(.ui( 12)).foregroundStyle(Palette.accentInk)
             }
             .padding(.leading, 24)
         }
@@ -297,18 +297,18 @@ private struct DocumentNotesView: View {
     private var summaryEditor: some View {
         VStack(alignment: .leading, spacing: 8) {
             fieldFrame(TextEditor(text: $draft)
-                .font(.system(size: 15)).lineSpacing(9)
+                .font(.ui( 15)).lineSpacing(9)
                 .scrollContentBackground(.hidden)
                 .focused($focused)
                 .frame(minHeight: 72)
                 .padding(.horizontal, 6).padding(.vertical, 8))
             HStack(spacing: 14) {
-                Text("⌘⏎ 保存 · esc 取消").font(.system(size: 11)).foregroundStyle(Palette.tertiary)
+                Text("⌘⏎ 保存 · esc 取消").font(.ui( 11)).foregroundStyle(Palette.tertiary)
                 Spacer()
                 Button(L("取消")) { editing?.open(nil) }
-                    .buttonStyle(.plain).font(.system(size: 12)).foregroundStyle(Palette.secondary)
+                    .buttonStyle(.plain).font(.ui( 12)).foregroundStyle(Palette.secondary)
                 Button(L("保存")) { commit() }
-                    .buttonStyle(.plain).font(.system(size: 12, weight: .semibold)).foregroundStyle(Palette.accentInk)
+                    .buttonStyle(.plain).font(.ui( 12, weight: .semibold)).foregroundStyle(Palette.accentInk)
                     .keyboardShortcut(.return, modifiers: .command)
             }
         }
@@ -348,11 +348,11 @@ private struct DocumentNotesView: View {
         let text = item.withOwner
         return HStack(alignment: .firstTextBaseline, spacing: 8) {
             Group {
-                if todo { Image(systemName: "circle").font(.system(size: 11)) } else { Text("\(index)").font(.system(size: 12).monospacedDigit()) }
+                if todo { Image(systemName: "circle").font(.ui( 11)) } else { Text("\(index)").font(.ui( 12).monospacedDigit()) }
             }
             .fontWeight(.semibold).foregroundStyle(weak ? Palette.secondary : Palette.link).frame(width: 16, alignment: .leading)
             Text(weak ? AttributedString(text) : Highlight.facts(text))
-                .font(.system(size: 15)).lineSpacing(5)
+                .font(.ui( 15)).lineSpacing(5)
                 .foregroundStyle(weak ? Palette.secondary : Palette.ink)
                 .fixedSize(horizontal: false, vertical: true)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -410,9 +410,9 @@ private struct DocumentTopicRow: View {
             HStack(alignment: .firstTextBaseline, spacing: 8) {
                 Button { withAnimation(.easeOut(duration: 0.2)) { open.toggle() } } label: {
                     HStack(alignment: .firstTextBaseline, spacing: 8) {
-                        Text(String(format: "%02d", index + 1)).font(.system(size: 12, weight: .semibold).monospacedDigit())
+                        Text(String(format: "%02d", index + 1)).font(.ui( 12, weight: .semibold).monospacedDigit())
                             .foregroundStyle(Palette.link).frame(width: 28, alignment: .leading)
-                        Text(topic.title).font(.system(size: 15, weight: .semibold)).foregroundStyle(Palette.ink)
+                        Text(topic.title).font(.ui( 15, weight: .semibold)).foregroundStyle(Palette.ink)
                             .multilineTextAlignment(.leading)
                         if current { Tag(L("正在讲"), live: true) }
                         if fresh.contains(topic.title) && !current { Tag(L("新"), live: true) }
@@ -422,7 +422,7 @@ private struct DocumentTopicRow: View {
                 }
                 .buttonStyle(.plain)
                 TimeLink(text: NotesEngine.clock(topic.start), t: topic.start, onJump: onJump)
-                Image(systemName: "chevron.right").font(.system(size: 10, weight: .semibold))
+                Image(systemName: "chevron.right").font(.ui( 10, weight: .semibold))
                     .foregroundStyle(Palette.secondary).rotationEffect(.degrees(open ? 90 : 0))
             }
             .padding(.vertical, 15)
@@ -430,13 +430,13 @@ private struct DocumentTopicRow: View {
             if open {
                 VStack(alignment: .leading, spacing: 7) {
                     if !topic.summary.isEmpty {
-                        Text(topic.summary).font(.system(size: 14)).lineSpacing(6).foregroundStyle(Palette.body)
+                        Text(topic.summary).font(.ui( 14)).lineSpacing(6).foregroundStyle(Palette.body)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                     ForEach(Array(topic.points.enumerated()), id: \.offset) { i, p in
                         HStack(alignment: .firstTextBaseline, spacing: 8) {
                             Text("·").foregroundStyle(Palette.secondary)
-                            Text(p).font(.system(size: 14)).lineSpacing(5).foregroundStyle(Palette.ink).textSelection(.enabled)
+                            Text(p).font(.ui( 14)).lineSpacing(5).foregroundStyle(Palette.ink).textSelection(.enabled)
                                 .fixedSize(horizontal: false, vertical: true)
                             if fresh.contains(p) { Tag(L("新"), live: true) }
                         }
@@ -471,20 +471,20 @@ private struct TopicView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .firstTextBaseline, spacing: 8) {
-                Text(topic.title).font(.system(size: 15, weight: .bold)).fixedSize(horizontal: false, vertical: true)
+                Text(topic.title).font(.ui( 15, weight: .bold)).fixedSize(horizontal: false, vertical: true)
                 if current { Tag(L("正在讲"), live: true) }
                 if fresh.contains(topic.title) && !current { Tag(L("新"), live: true) }
                 Spacer(minLength: 8)
                 Button { onJump(topic.start) } label: {
                     Text(range)
-                        .font(.system(size: 12, weight: current ? .semibold : .regular).monospacedDigit())
+                        .font(.ui( 12, weight: current ? .semibold : .regular).monospacedDigit())
                         .foregroundStyle(current ? Palette.accentInk : Palette.tertiary)
                         .fixedSize()
                 }
                 .buttonStyle(.plain).help("看原话")
             }
             if !topic.summary.isEmpty {
-                Text(topic.summary).font(.system(size: 13)).foregroundStyle(Palette.secondary).lineSpacing(2)
+                Text(topic.summary).font(.ui( 13)).foregroundStyle(Palette.secondary).lineSpacing(2)
                     .fixedSize(horizontal: false, vertical: true)
             }
             // Each point's time and 新 sit on a line above it, so the text keeps the column's whole width.
@@ -496,7 +496,7 @@ private struct TopicView: View {
                             if fresh.contains(p) { Tag(L("新"), live: true) }
                         }
                     }
-                    Text(p).font(.system(size: 14)).lineSpacing(2).textSelection(.enabled)
+                    Text(p).font(.ui( 14)).lineSpacing(2).textSelection(.enabled)
                         .fixedSize(horizontal: false, vertical: true)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
@@ -528,10 +528,10 @@ struct NotesBehindRow: View {
             VStack(alignment: .leading, spacing: 3) {
                 HStack(spacing: 8) {
                     LiveDot()
-                    Text("\(NotesEngine.clock(after)) 之后的 \(lines) 句还在整理").font(.system(size: 13, weight: .semibold))
+                    Text("\(NotesEngine.clock(after)) 之后的 \(lines) 句还在整理").font(.ui( 13, weight: .semibold))
                         .fixedSize(horizontal: false, vertical: true)
                 }
-                Text("先看原话 →").font(.system(size: 12))
+                Text("先看原话 →").font(.ui( 12))
             }
             .foregroundStyle(Palette.accentInk)
             .padding(.horizontal, 14).padding(.vertical, 11)
@@ -552,7 +552,7 @@ struct TimeLink: View {
 
     var body: some View {
         Button { onJump(t) } label: {
-            Text(text).font(.system(size: 12).monospacedDigit())
+            Text(text).font(.ui( 12).monospacedDigit())
                 .fontWeight(.medium)
                 .foregroundStyle(Palette.link)
                 .underline(hover)
@@ -576,10 +576,10 @@ struct FishboneView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 6) {
-                Image(systemName: "point.3.connected.trianglepath.dotted").font(.system(size: 12)).foregroundStyle(Palette.secondary)
-                Text(fishbone.question.isEmpty ? L("为什么") : fishbone.question).font(.system(size: 13, weight: .bold))
+                Image(systemName: "point.3.connected.trianglepath.dotted").font(.ui( 12)).foregroundStyle(Palette.secondary)
+                Text(fishbone.question.isEmpty ? L("为什么") : fishbone.question).font(.ui( 13, weight: .bold))
                 Spacer()
-                Text("鱼骨图").font(.system(size: 11)).foregroundStyle(Palette.tertiary)
+                Text("鱼骨图").font(.ui( 11)).foregroundStyle(Palette.tertiary)
             }
             VStack(spacing: 6) {
                 ForEach(Array(stride(from: 0, to: fishbone.branches.count, by: 2)), id: \.self) { i in
@@ -596,7 +596,7 @@ struct FishboneView: View {
                 }
             }
             if !forPicture {
-                Text("点击分支跳回原话").font(.system(size: 11)).foregroundStyle(Palette.tertiary)
+                Text("点击分支跳回原话").font(.ui( 11)).foregroundStyle(Palette.tertiary)
             }
         }
         .padding(12)
@@ -623,9 +623,9 @@ struct FishboneView: View {
         let weak = b.support == 0
         return Button { if let t = b.t { onJump(t) } } label: {
             VStack(alignment: .leading, spacing: 3) {
-                Text(b.label).font(.system(size: 12, weight: .bold)).foregroundStyle(weak ? Palette.tertiary : Palette.ink)
+                Text(b.label).font(.ui( 12, weight: .bold)).foregroundStyle(weak ? Palette.tertiary : Palette.ink)
                 if !b.detail.isEmpty {
-                    Text(b.detail).font(.system(size: 12)).foregroundStyle(Palette.secondary).lineLimit(3)
+                    Text(b.detail).font(.ui( 12)).foregroundStyle(Palette.secondary).lineLimit(3)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
@@ -774,7 +774,7 @@ struct TranscriptListView<Partial: View>: View, Equatable {
                             switch item {
                             case .header(let title, let start, let gap):
                                 Text("\(NotesEngine.clock(start)) · \(title)")
-                                    .font(.system(size: 13, weight: .bold)).foregroundStyle(Palette.secondary)
+                                    .font(.ui( 13, weight: .bold)).foregroundStyle(Palette.secondary)
                                     .padding(.top, gap ? 16 : 6).padding(.bottom, 10)
                             case .paragraph(let ls, let label):
                                 row(ls, label: label).padding(.bottom, 4)
@@ -787,7 +787,7 @@ struct TranscriptListView<Partial: View>: View, Equatable {
                             if live {
                                 TranscriptWaitingView(startedAt: startedAt, identifying: identifying)
                             } else {
-                                Text("说话的内容会出现在这里").font(.system(size: 13)).foregroundStyle(Palette.tertiary)
+                                Text("说话的内容会出现在这里").font(.ui( 13)).foregroundStyle(Palette.tertiary)
                                     .frame(maxWidth: .infinity).padding(.top, 40)
                             }
                         }
@@ -877,10 +877,10 @@ struct TranscriptListView<Partial: View>: View, Equatable {
             LinearGradient(colors: [.white.opacity(0), .white], startPoint: .top, endPoint: .bottom).frame(height: 40)
             Button(action: action) {
                 HStack(spacing: 10) {
-                    Image(systemName: "arrow.down").font(.system(size: 12, weight: .bold))
-                    Text("\(lines.count - seenCount) 句新内容").font(.system(size: 13, weight: .semibold))
+                    Image(systemName: "arrow.down").font(.ui( 12, weight: .bold))
+                    Text("\(lines.count - seenCount) 句新内容").font(.ui( 13, weight: .semibold))
                     if let last = lines.last {
-                        Text(last.shown).font(.system(size: 13)).foregroundStyle(Color(white: 0.74)).lineLimit(1)
+                        Text(last.shown).font(.ui( 13)).foregroundStyle(Color(white: 0.74)).lineLimit(1)
                     }
                 }
                 .foregroundStyle(.white)
@@ -927,7 +927,7 @@ struct TranscriptListView<Partial: View>: View, Equatable {
         let dst = TranscriptParagraphs.join(ls.compactMap { $0.dst != $0.src && $0.dst != $0.shown ? $0.dst : nil })
         let fixed = ls.flatMap { l in (l.fixes ?? []).filter(\.applied).map { (l.id, $0) } }
         return HStack(alignment: .top, spacing: 12) {
-            Text(NotesEngine.clock(l.t)).font(.system(size: 12, weight: isMatch ? .semibold : .regular).monospacedDigit())
+            Text(NotesEngine.clock(l.t)).font(.ui( 12, weight: isMatch ? .semibold : .regular).monospacedDigit())
                 .foregroundStyle(latest || isMatch ? Palette.accentInk : Palette.tertiary)
                 .frame(width: l.t >= 3600 ? 56 : 40, alignment: .leading).padding(.top, 2)
             VStack(alignment: .leading, spacing: 4) {
@@ -938,7 +938,7 @@ struct TranscriptListView<Partial: View>: View, Equatable {
                         Button { assigning = assigning == l.id ? nil : l.id } label: {
                             HStack(spacing: 4) {
                                 if let n = speakers[l.id] { SpeakerTag(number: n) } else { UnknownSpeakerTag() }
-                                Image(systemName: "chevron.down").font(.system(size: 8, weight: .bold)).foregroundStyle(Palette.tertiary)
+                                Image(systemName: "chevron.down").font(.ui( 8, weight: .bold)).foregroundStyle(Palette.tertiary)
                             }
                             .padding(.horizontal, assigning == l.id ? 6 : 0).frame(height: 20)
                             .background(RoundedRectangle(cornerRadius: 6).fill(assigning == l.id ? Color.white : .clear))
@@ -951,13 +951,13 @@ struct TranscriptListView<Partial: View>: View, Equatable {
                     if places, label, l.speaker != "me" { PlaceTag(line: l) }
                     if live, ls.contains(where: { settling.contains($0.id) }) {
                         Spacer(minLength: 4)
-                        Text("校准中").font(.system(size: 11)).foregroundStyle(Palette.tertiary)
+                        Text("校准中").font(.ui( 11)).foregroundStyle(Palette.tertiary)
                             .help(L("文字稍后会再校准一次，字幕不受影响"))
                     }
                 }
-                Text(highlighted(src, current: isMatch)).font(.system(size: 14)).lineSpacing(2).textSelection(.enabled)
+                Text(highlighted(src, current: isMatch)).font(.ui( 14)).lineSpacing(2).textSelection(.enabled)
                 if bilingual, !dst.isEmpty {
-                    Text(highlighted(dst, current: isMatch)).font(.system(size: 13)).foregroundStyle(Palette.secondary)
+                    Text(highlighted(dst, current: isMatch)).font(.ui( 13)).foregroundStyle(Palette.secondary)
                         .lineSpacing(2).textSelection(.enabled)
                 }
                 // 改正听错的词: pointing at the paragraph shows what each fixed word was heard as.
@@ -1109,15 +1109,15 @@ struct LivePartialRow: View {
         TimelineView(.periodic(from: .now, by: 1)) { ctx in
             let time = startedAt.map { max(0, ctx.date.timeIntervalSince($0)) }
             HStack(alignment: .top, spacing: 12) {
-                Text(time.map(NotesEngine.clock) ?? "").font(.system(size: 12).monospacedDigit())
+                Text(time.map(NotesEngine.clock) ?? "").font(.ui( 12).monospacedDigit())
                     .foregroundStyle(Palette.accentInk)
                     .frame(width: (time ?? 0) >= 3600 ? 56 : 40, alignment: .leading).padding(.top, 2)
                 VStack(alignment: .leading, spacing: 4) {
                     HStack(alignment: .lastTextBaseline, spacing: 0) {
-                        Text(model.liveSource).font(.system(size: 14)).foregroundStyle(Palette.secondary).lineSpacing(2)
-                        AnimatedDots().font(.system(size: 14)).foregroundStyle(Palette.secondary)
+                        Text(model.liveSource).font(.ui( 14)).foregroundStyle(Palette.secondary).lineSpacing(2)
+                        AnimatedDots().font(.ui( 14)).foregroundStyle(Palette.secondary)
                     }
-                    Text("正在说").font(.system(size: 11)).foregroundStyle(Palette.tertiary)
+                    Text("正在说").font(.ui( 11)).foregroundStyle(Palette.tertiary)
                 }
                 Spacer(minLength: 0)
             }
@@ -1154,7 +1154,7 @@ struct TranscriptWaitingView: View {
                 Rectangle().fill(MainWindowView.hairline).frame(height: 1)
                 Text("从这里开始听")
             }
-            .font(.system(size: 12)).foregroundStyle(Palette.tertiary)
+            .font(.ui( 12)).foregroundStyle(Palette.tertiary)
             .padding(.bottom, 14)
             FramedList {
                 skeletonRow(0.7, 0.88)
@@ -1167,9 +1167,9 @@ struct TranscriptWaitingView: View {
             }
             .padding(.top, 10).padding(.leading, 2)
             VStack(alignment: .leading, spacing: 6) {
-                Text("此刻").font(.system(size: 11, weight: .bold)).foregroundStyle(Palette.accentInk)
+                Text("此刻").font(.ui( 11, weight: .bold)).foregroundStyle(Palette.accentInk)
                 HStack(spacing: 3) {
-                    Text(identifying ? L("正在识别语言…") : L("等有人开口")).font(.system(size: 15)).foregroundStyle(Palette.tertiary)
+                    Text(identifying ? L("正在识别语言…") : L("等有人开口")).font(.ui( 15)).foregroundStyle(Palette.tertiary)
                     BlinkingCaret()
                 }
             }
@@ -1194,7 +1194,7 @@ struct TranscriptWaitingView: View {
             Capsule().fill(color).frame(width: 14, height: 4)
             Text(title)
         }
-        .font(.system(size: 12)).foregroundStyle(Palette.tertiary)
+        .font(.ui( 12)).foregroundStyle(Palette.tertiary)
     }
 }
 
@@ -1215,7 +1215,7 @@ struct SectionTitle: View {
     let text: String
     init(_ text: String) { self.text = text }
     var body: some View {
-        Text(text).font(.system(size: 15, weight: .bold)).foregroundStyle(Palette.secondary)
+        Text(text).font(.ui( 15, weight: .bold)).foregroundStyle(Palette.secondary)
     }
 }
 
@@ -1227,7 +1227,7 @@ struct Tag: View {
         self.live = live
     }
     var body: some View {
-        Text(text).font(.system(size: 11, weight: .semibold))
+        Text(text).font(.ui( 11, weight: .semibold))
             .foregroundStyle(live ? Palette.accentInk : Palette.secondary)
             .padding(.horizontal, 7).padding(.vertical, 2)
             .background(RoundedRectangle(cornerRadius: 6).fill(live ? Palette.accentPale : Palette.fill))
@@ -1251,10 +1251,10 @@ struct TermChips: View {
                 // What was misheard goes on its own small line, so a long note wraps beside the name.
                 VStack(alignment: .leading, spacing: 1) {
                     (Text(t.name).bold() + Text(t.note.isEmpty ? "" : " \(t.note)"))
-                        .font(.system(size: 12)).fixedSize(horizontal: false, vertical: true)
+                        .font(.ui( 12)).fixedSize(horizontal: false, vertical: true)
                     if showHeard, !t.heard.isEmpty {
                         Text("原识别 \(t.heard.prefix(2).joined(separator: "、"))")
-                            .font(.system(size: 11)).foregroundStyle(Palette.tertiary)
+                            .font(.ui( 11)).foregroundStyle(Palette.tertiary)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                 }
@@ -1263,7 +1263,7 @@ struct TermChips: View {
             }
             if extra > 0 {
                 Button(all ? L("收起") : L("展开全部 \(list.count) 个")) { all.toggle() }
-                    .buttonStyle(.plain).font(.system(size: 12)).foregroundStyle(Palette.secondary)
+                    .buttonStyle(.plain).font(.ui( 12)).foregroundStyle(Palette.secondary)
                     .padding(.horizontal, 6).padding(.vertical, 5)
             }
         }
@@ -1439,30 +1439,30 @@ struct NotesListeningView: View {
         VStack(alignment: .leading, spacing: 22) {
             HStack(spacing: 12) {
                 SoundBars()
-                Text("有人开口后，约半分钟出第一版").font(.system(size: 13)).foregroundStyle(Palette.ink)
+                Text("有人开口后，约半分钟出第一版").font(.ui( 13)).foregroundStyle(Palette.ink)
                 Spacer(minLength: 0)
                 if heard > 0 {
-                    Text("已听到 \(heard) 句").font(.system(size: 12)).foregroundStyle(Palette.tertiary).fixedSize()
+                    Text("已听到 \(heard) 句").font(.ui( 12)).foregroundStyle(Palette.tertiary).fixedSize()
                 }
             }
             .padding(.horizontal, 14).padding(.vertical, 12)
             .background(RoundedRectangle(cornerRadius: 12).fill(Palette.accentPale.opacity(0.7)))
             VStack(alignment: .leading, spacing: 10) {
-                Text("总结").font(.system(size: 15, weight: .bold)).foregroundStyle(Palette.placeholder)
+                Text("总结").font(.ui( 15, weight: .bold)).foregroundStyle(Palette.placeholder)
                 SkeletonBar(fraction: 0.94, height: 10)
                 SkeletonBar(fraction: 0.8, height: 10)
                 SkeletonBar(fraction: 0.56, height: 10)
             }
             VStack(alignment: .leading, spacing: 12) {
-                Text("议题").font(.system(size: 15, weight: .bold)).foregroundStyle(Palette.placeholder)
+                Text("议题").font(.ui( 15, weight: .bold)).foregroundStyle(Palette.placeholder)
                 topicSlot(time: "00:00", lines: [0.52, 0.88, 0.7])
                 topicSlot(time: "--:--", lines: [0.4, 0.76]).opacity(0.6)
             }
             // Wraps: the English chips don't fit one line in a narrow window.
             FlowLayout(spacing: 6) {
-                Text("会整理出").font(.system(size: 12)).foregroundStyle(Palette.tertiary).padding(.vertical, 4)
+                Text("会整理出").font(.ui( 12)).foregroundStyle(Palette.tertiary).padding(.vertical, 4)
                 ForEach([L("结论"), L("待办"), L("人名和术语"), L("鱼骨图")], id: \.self) { t in
-                    Text(t).font(.system(size: 12)).foregroundStyle(Palette.secondary).fixedSize()
+                    Text(t).font(.ui( 12)).foregroundStyle(Palette.secondary).fixedSize()
                         .padding(.horizontal, 10).padding(.vertical, 4)
                         .background(Capsule().fill(Palette.fill))
                 }
@@ -1473,7 +1473,7 @@ struct NotesListeningView: View {
 
     private func topicSlot(time: String, lines: [CGFloat]) -> some View {
         HStack(alignment: .top, spacing: 12) {
-            Text(time).font(.system(size: 12).monospacedDigit()).foregroundStyle(Palette.placeholder)
+            Text(time).font(.ui( 12).monospacedDigit()).foregroundStyle(Palette.placeholder)
             VStack(alignment: .leading, spacing: 8) {
                 ForEach(Array(lines.enumerated()), id: \.offset) { i, f in
                     SkeletonBar(fraction: f, height: i == 0 ? 11 : 8)
@@ -1517,14 +1517,14 @@ struct NotesGeneratingView: View {
                     Text("正在生成纪要")
                     AnimatedDots()
                 }
-                .font(.system(size: 15, weight: .bold))
+                .font(.ui( 15, weight: .bold))
                 Spacer()
                 if let heard, heard > 0 {
-                    Text("已听到 \(heard) 句").font(.system(size: 12)).foregroundStyle(Palette.tertiary)
+                    Text("已听到 \(heard) 句").font(.ui( 12)).foregroundStyle(Palette.tertiary)
                 }
             }
             VStack(alignment: .leading, spacing: 10) {
-                Text("总结").font(.system(size: 15, weight: .bold)).foregroundStyle(Palette.placeholder)
+                Text("总结").font(.ui( 15, weight: .bold)).foregroundStyle(Palette.placeholder)
                 SkeletonBar()
                 SkeletonBar(fraction: 0.92)
                 SkeletonBar(fraction: 0.64)
@@ -1532,7 +1532,7 @@ struct NotesGeneratingView: View {
             .padding(18)
             .background(RoundedRectangle(cornerRadius: 18).fill(Palette.raised))
             VStack(alignment: .leading, spacing: 14) {
-                Text("议题").font(.system(size: 15, weight: .bold)).foregroundStyle(Palette.placeholder)
+                Text("议题").font(.ui( 15, weight: .bold)).foregroundStyle(Palette.placeholder)
                 topicRow(lines: [0.55, 0.88, 0.72])
                 topicRow(lines: [0.42, 0.8]).opacity(0.6)
             }
@@ -1575,8 +1575,8 @@ struct MeetingEndingStrip: View {
     var body: some View {
         VStack(alignment: .leading, spacing: compact ? 8 : 10) {
             VStack(alignment: .leading, spacing: 3) {
-                Text(model.endingTitle(pending)).font(.system(size: compact ? 13 : 14, weight: .bold)).lineLimit(2)
-                Text(model.endingDetail(pending, now: now)).font(.system(size: 12).monospacedDigit())
+                Text(model.endingTitle(pending)).font(.ui( compact ? 13 : 14, weight: .bold)).lineLimit(2)
+                Text(model.endingDetail(pending, now: now)).font(.ui( 12).monospacedDigit())
                     .foregroundStyle(Palette.secondary).lineLimit(2)
             }
             HStack(spacing: 8) {
@@ -1603,9 +1603,9 @@ struct FixedWords: View {
                 let c = Correction.label(item.fix)
                 HStack(spacing: 6) {
                     (Text("听成").foregroundStyle(Palette.tertiary) + Text(" " + c.from) + Text(" → ").foregroundStyle(Palette.tertiary) + Text(c.to))
-                        .font(.system(size: 11))
+                        .font(.ui( 11))
                     Button(L("改回")) { onRevert(item.line, item.fix) }
-                        .buttonStyle(.plain).font(.system(size: 11, weight: .medium)).foregroundStyle(Palette.link)
+                        .buttonStyle(.plain).font(.ui( 11, weight: .medium)).foregroundStyle(Palette.link)
                 }
                 .padding(.horizontal, 8).padding(.vertical, 3)
                 .background(RoundedRectangle(cornerRadius: 6).fill(Palette.fill))
@@ -1628,28 +1628,28 @@ struct FixConfirmCard: View {
         let c = Correction.label(fix)
         VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .firstTextBaseline, spacing: 8) {
-                Text("这样改对吗？").font(.system(size: 13, weight: .semibold))
-                Text("确认后整场一起改，以后也这样改").font(.system(size: 12)).foregroundStyle(Palette.tertiary).lineLimit(1)
+                Text("这样改对吗？").font(.ui( 13, weight: .semibold))
+                Text("确认后整场一起改，以后也这样改").font(.ui( 12)).foregroundStyle(Palette.tertiary).lineLimit(1)
                 Spacer(minLength: 4)
-                if count > 1 { Text("1 / \(count)").font(.system(size: 12).monospacedDigit()).foregroundStyle(Palette.tertiary) }
+                if count > 1 { Text("1 / \(count)").font(.ui( 12).monospacedDigit()).foregroundStyle(Palette.tertiary) }
             }
             HStack(spacing: 8) {
                 VStack(alignment: .leading, spacing: 2) {
-                    (Text(c.from) + Text(" → ").foregroundStyle(Palette.tertiary) + Text(c.to).bold()).font(.system(size: 14))
-                    Text("\(NotesEngine.clock(line.t)) · \(line.src)").font(.system(size: 11)).foregroundStyle(Palette.tertiary).lineLimit(1)
+                    (Text(c.from) + Text(" → ").foregroundStyle(Palette.tertiary) + Text(c.to).bold()).font(.ui( 14))
+                    Text("\(NotesEngine.clock(line.t)) · \(line.src)").font(.ui( 11)).foregroundStyle(Palette.tertiary).lineLimit(1)
                 }
                 Spacer(minLength: 4)
                 Button { onAnswer(true) } label: {
-                    Text("对").font(.system(size: 13, weight: .medium)).foregroundStyle(.white)
+                    Text("对").font(.ui( 13, weight: .medium)).foregroundStyle(.white)
                         .padding(.horizontal, 14).frame(height: 28).background(RoundedRectangle(cornerRadius: 7).fill(Palette.ink))
                 }.buttonStyle(.plain)
                 Button { onAnswer(false) } label: {
-                    Text("不对").font(.system(size: 13)).foregroundStyle(Palette.secondary)
+                    Text("不对").font(.ui( 13)).foregroundStyle(Palette.secondary)
                         .padding(.horizontal, 14).frame(height: 28).background(RoundedRectangle(cornerRadius: 7).fill(Palette.fill))
                 }.buttonStyle(.plain)
                 if let onLater {
                     Button(action: onLater) {
-                        Image(systemName: "xmark").font(.system(size: 11, weight: .semibold)).foregroundStyle(Palette.tertiary)
+                        Image(systemName: "xmark").font(.ui( 11, weight: .semibold)).foregroundStyle(Palette.tertiary)
                             .frame(width: 26, height: 28).contentShape(Rectangle())
                     }
                     .buttonStyle(.plain).help(L("稍后再看")).accessibilityLabel(L("稍后再看"))
@@ -1679,9 +1679,9 @@ struct FixTermsView: View {
                     ForEach(words, id: \.word) { w in
                         Button { onShow(w.word) } label: {
                             VStack(alignment: .leading, spacing: 1) {
-                                Text(w.word).font(.system(size: 12)).bold().foregroundStyle(Palette.ink)
+                                Text(w.word).font(.ui( 12)).bold().foregroundStyle(Palette.ink)
                                 Text("听成 \(w.heard.prefix(2).joined(separator: "、")) · 改了 \(w.count) 处")
-                                    .font(.system(size: 11)).foregroundStyle(Palette.link)
+                                    .font(.ui( 11)).foregroundStyle(Palette.link)
                             }
                             .padding(.horizontal, 9).padding(.vertical, 5)
                             .background(RoundedRectangle(cornerRadius: 7).fill(Palette.fill))
@@ -1692,22 +1692,22 @@ struct FixTermsView: View {
                 }
             }
             if !waiting.isEmpty {
-                Text("等你确认，还没改").font(.system(size: 12)).foregroundStyle(Palette.tertiary).padding(.top, 2)
+                Text("等你确认，还没改").font(.ui( 12)).foregroundStyle(Palette.tertiary).padding(.top, 2)
                 ForEach(Array(waiting.enumerated()), id: \.offset) { _, w in
                     let c = Correction.label(w.fix)
                     HStack(spacing: 8) {
                         VStack(alignment: .leading, spacing: 1) {
-                            Text(c.to).font(.system(size: 13)).bold()
-                            Text("听成 \(c.from)").font(.system(size: 11)).foregroundStyle(Palette.tertiary)
+                            Text(c.to).font(.ui( 13)).bold()
+                            Text("听成 \(c.from)").font(.ui( 11)).foregroundStyle(Palette.tertiary)
                         }
                         Spacer(minLength: 4)
                         Button { fixes.answer(w.fix, yes: true, in: session.id) } label: {
-                            Image(systemName: "checkmark").font(.system(size: 12, weight: .semibold)).foregroundStyle(.white)
+                            Image(systemName: "checkmark").font(.ui( 12, weight: .semibold)).foregroundStyle(.white)
                                 .frame(width: 28, height: 28).background(RoundedRectangle(cornerRadius: 7).fill(Palette.ink))
                         }
                         .buttonStyle(.plain).accessibilityLabel(L("对"))
                         Button { fixes.answer(w.fix, yes: false, in: session.id) } label: {
-                            Image(systemName: "xmark").font(.system(size: 12, weight: .semibold)).foregroundStyle(Palette.secondary)
+                            Image(systemName: "xmark").font(.ui( 12, weight: .semibold)).foregroundStyle(Palette.secondary)
                                 .frame(width: 28, height: 28).background(RoundedRectangle(cornerRadius: 7).fill(Palette.fill))
                         }
                         .buttonStyle(.plain).accessibilityLabel(L("不对"))

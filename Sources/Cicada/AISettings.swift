@@ -30,20 +30,20 @@ struct AISettingsView: View {
         VStack(alignment: .leading, spacing: 14) {
             keyCard
             if model.translationHealth.googleDown { translationCard }
-            Text("现在能用的").font(.system(size: 13, weight: .semibold)).foregroundStyle(Palette.secondary)
+            Text("现在能用的").font(.ui( 13, weight: .semibold)).foregroundStyle(Palette.secondary)
                 .padding(.top, 4)
             SettingsCard { usage }
             Button { withAnimation(.easeOut(duration: 0.15)) { model.aiModelsOpen.toggle() } } label: {
                 HStack(spacing: 4) {
                     Text("自己选模型")
-                    Image(systemName: "chevron.right").font(.system(size: 9, weight: .semibold))
+                    Image(systemName: "chevron.right").font(.ui( 9, weight: .semibold))
                         .rotationEffect(.degrees(model.aiModelsOpen ? 90 : 0))
                 }
-                .font(.system(size: 13)).foregroundStyle(Palette.secondary).contentShape(Rectangle())
+                .font(.ui( 13)).foregroundStyle(Palette.secondary).contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             if model.aiModelsOpen { SettingsCard { models } }
-            Text(footnote).font(.system(size: 12)).foregroundStyle(Palette.tertiary)
+            Text(footnote).font(.ui( 12)).foregroundStyle(Palette.tertiary)
                 .fixedSize(horizontal: false, vertical: true)
         }
         .onAppear { syncDrafts() }
@@ -58,7 +58,7 @@ struct AISettingsView: View {
     private var customPage: some View {
         VStack(alignment: .leading, spacing: 14) {
             Text("每样可以接不同的机器；这台 Mac 和局域网里的服务可以用 http。")
-                .font(.system(size: 12)).foregroundStyle(Palette.tertiary).fixedSize(horizontal: false, vertical: true)
+                .font(.ui( 12)).foregroundStyle(Palette.tertiary).fixedSize(horizontal: false, vertical: true)
             SettingsCard {
                 textSection
                 Divider()
@@ -68,15 +68,15 @@ struct AISettingsView: View {
             }
             SettingsCard { onlyRow }
             HStack(spacing: 6) {
-                Image(systemName: "lock").font(.system(size: 11)).foregroundStyle(Palette.tertiary)
-                Text(lockLine).font(.system(size: 11)).foregroundStyle(Palette.tertiary).fixedSize(horizontal: false, vertical: true)
+                Image(systemName: "lock").font(.ui( 11)).foregroundStyle(Palette.tertiary)
+                Text(lockLine).font(.ui( 11)).foregroundStyle(Palette.tertiary).fixedSize(horizontal: false, vertical: true)
                 Spacer()
                 if let key = ling.key, !key.isEmpty {
                     Button("移除 key") { ling.removeKey() }
-                        .buttonStyle(.plain).font(.system(size: 11)).foregroundStyle(Palette.secondary)
+                        .buttonStyle(.plain).font(.ui( 11)).foregroundStyle(Palette.secondary)
                 }
             }
-            Text(footnote).font(.system(size: 12)).foregroundStyle(Palette.tertiary)
+            Text(footnote).font(.ui( 12)).foregroundStyle(Palette.tertiary)
                 .fixedSize(horizontal: false, vertical: true)
         }
         .onAppear {
@@ -96,14 +96,14 @@ struct AISettingsView: View {
             HStack(spacing: 10) {
                 Circle().fill(dot).frame(width: 8, height: 8)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(title).font(.system(size: 13)).foregroundStyle(Palette.ink)
-                    Text(detail).font(.system(size: 11)).foregroundStyle(Palette.tertiary).lineLimit(1).truncationMode(.middle)
+                    Text(title).font(.ui( 13)).foregroundStyle(Palette.ink)
+                    Text(detail).font(.ui( 11)).foregroundStyle(Palette.tertiary).lineLimit(1).truncationMode(.middle)
                 }
                 Spacer(minLength: 8)
                 if let trailing {
-                    Text(trailing).font(.system(size: 12).monospacedDigit()).foregroundStyle(trailingColor).lineLimit(1).fixedSize()
+                    Text(trailing).font(.ui( 12).monospacedDigit()).foregroundStyle(trailingColor).lineLimit(1).fixedSize()
                 }
-                Image(systemName: "chevron.right").font(.system(size: 9, weight: .semibold)).foregroundStyle(Palette.secondary)
+                Image(systemName: "chevron.right").font(.ui( 9, weight: .semibold)).foregroundStyle(Palette.secondary)
                     .rotationEffect(.degrees(open.contains(id) ? 90 : 0))
             }
             .padding(.horizontal, 16).frame(minHeight: 52).contentShape(Rectangle())
@@ -118,7 +118,7 @@ struct AISettingsView: View {
         if !ling.aiCheck.needsLocalNetwork, let host = AIProvider.customBase(address)?.host,
            AIProvider.isNearby(host), !AIProvider.isLocal(host) {
             Text("局域网里的服务器：macOS 会问一次能否访问本地网络，点“允许”。")
-                .font(.system(size: 11)).foregroundStyle(Palette.tertiary)
+                .font(.ui( 11)).foregroundStyle(Palette.tertiary)
                 .fixedSize(horizontal: false, vertical: true).padding(.leading, 42)
         }
     }
@@ -181,7 +181,7 @@ struct AISettingsView: View {
                 groupTitle(L("翻译"))
                 field(L("地址"), "http://192.168.1.20:8000/v1", $baseDraft)
                 if !baseDraft.isEmpty, AIProvider.customBase(baseDraft) == nil {
-                    Text("地址要用 https；这台 Mac 和局域网里的服务可以用 http。").font(.system(size: 11)).foregroundStyle(Palette.error)
+                    Text("地址要用 https；这台 Mac 和局域网里的服务可以用 http。").font(.ui( 11)).foregroundStyle(Palette.error)
                         .padding(.leading, 42)
                 } else {
                     localNetworkNote(baseDraft)
@@ -193,7 +193,7 @@ struct AISettingsView: View {
                         SoftButton(L("更换")) { draft = ""; editing = true }
                     } else {
                         SecureField(keyPlaceholder, text: $draft)
-                            .textFieldStyle(.plain).font(.system(size: 13, design: .monospaced))
+                            .textFieldStyle(.plain).font(.ui( 13, design: .monospaced))
                             .padding(.horizontal, 12).frame(height: 32)
                             .background(RoundedRectangle(cornerRadius: 9).fill(Color.white))
                             .overlay(RoundedRectangle(cornerRadius: 9).stroke(Palette.line, lineWidth: 1))
@@ -201,7 +201,7 @@ struct AISettingsView: View {
                     }
                 }
                 if let hint = keyHint {
-                    Text(hint.text).font(.system(size: 12)).foregroundStyle(Palette.error).fixedSize(horizontal: false, vertical: true)
+                    Text(hint.text).font(.ui( 12)).foregroundStyle(Palette.error).fixedSize(horizontal: false, vertical: true)
                 }
                 HStack(spacing: 8) {
                     fieldLabel(L("模型"))
@@ -220,7 +220,7 @@ struct AISettingsView: View {
                         .disabled(check.running)
                 }
                 if let slow = check.slowLine(googleOff: settings.aiCustomOnly) {
-                    Text(slow).font(.system(size: 12)).foregroundStyle(Palette.warn).fixedSize(horizontal: false, vertical: true)
+                    Text(slow).font(.ui( 12)).foregroundStyle(Palette.warn).fixedSize(horizontal: false, vertical: true)
                 }
                 if showSteps {
                     AICheckSteps(model: model_, ling: ling, recheckInStep: false) { draft = ""; editing = true }
@@ -230,7 +230,7 @@ struct AISettingsView: View {
                 } else if check.passed, settings.aiConfig.notesApart, let t = check.translate {
                     checkRows(t)
                 } else if check.passed {
-                    Text(textFacts).font(.system(size: 11)).foregroundStyle(Palette.tertiary)
+                    Text(textFacts).font(.ui( 11)).foregroundStyle(Palette.tertiary)
                 }
             }
             .padding(.leading, 34).padding(.trailing, 16).padding(.bottom, 14)
@@ -259,7 +259,7 @@ struct AISettingsView: View {
                 model.applyAIService()
             }
             if c.notesBadAddress {
-                Text("地址要用 https；这台 Mac 和局域网里的服务可以用 http。").font(.system(size: 11)).foregroundStyle(Palette.error)
+                Text("地址要用 https；这台 Mac 和局域网里的服务可以用 http。").font(.ui( 11)).foregroundStyle(Palette.error)
                     .padding(.leading, 42)
             } else {
                 localNetworkNote(settings.aiCustomNotesBase)
@@ -272,7 +272,7 @@ struct AISettingsView: View {
                     SoftButton(L("移除")) { ling.removeNotesKey() }
                 } else {
                     SecureField(L("不填就用上面的 key"), text: $notesKeyDraft)
-                        .textFieldStyle(.plain).font(.system(size: 13, design: .monospaced))
+                        .textFieldStyle(.plain).font(.ui( 13, design: .monospaced))
                         .padding(.horizontal, 12).frame(height: 30)
                         .background(RoundedRectangle(cornerRadius: 9).fill(Color.white))
                         .overlay(RoundedRectangle(cornerRadius: 9).stroke(
@@ -292,10 +292,10 @@ struct AISettingsView: View {
             }
         }
         if let line = ling.aiCheck.notesLine(host: notesHost, model: c.forNotes.textModel, sharedKey: shared) {
-            Text(line).font(.system(size: 12)).foregroundStyle(Palette.error)
+            Text(line).font(.ui( 12)).foregroundStyle(Palette.error)
                 .fixedSize(horizontal: false, vertical: true).padding(.leading, 42)
         } else {
-            Text("用来写实时纪要、识别说话人，默认和翻译用同一个").font(.system(size: 11)).foregroundStyle(Palette.tertiary)
+            Text("用来写实时纪要、识别说话人，默认和翻译用同一个").font(.ui( 11)).foregroundStyle(Palette.tertiary)
                 .fixedSize(horizontal: false, vertical: true).padding(.leading, 42)
         }
     }
@@ -326,24 +326,24 @@ struct AISettingsView: View {
     private func checkRow(_ use: String, _ model: String, ok: Bool, _ result: String) -> some View {
         HStack(spacing: 10) {
             Circle().fill(ok ? Palette.ok : Palette.error).frame(width: 6, height: 6)
-            Text(use).font(.system(size: 12)).foregroundStyle(Palette.ink).frame(minWidth: 34, alignment: .leading).fixedSize()
-            Text(model).font(.system(size: 12, design: .monospaced)).foregroundStyle(Palette.secondary).lineLimit(1).truncationMode(.middle)
+            Text(use).font(.ui( 12)).foregroundStyle(Palette.ink).frame(minWidth: 34, alignment: .leading).fixedSize()
+            Text(model).font(.ui( 12, design: .monospaced)).foregroundStyle(Palette.secondary).lineLimit(1).truncationMode(.middle)
             Spacer(minLength: 8)
-            Text(result).font(.system(size: 12).monospacedDigit()).foregroundStyle(ok ? Palette.ok : Palette.error).lineLimit(1).fixedSize()
+            Text(result).font(.ui( 12).monospacedDigit()).foregroundStyle(ok ? Palette.ok : Palette.error).lineLimit(1).fixedSize()
         }
         .frame(minHeight: 36)
     }
 
     private func groupTitle(_ text: String) -> some View {
-        Text(text).font(.system(size: 12, weight: .semibold)).foregroundStyle(Palette.ink).frame(height: 22)
+        Text(text).font(.ui( 12, weight: .semibold)).foregroundStyle(Palette.ink).frame(height: 22)
     }
 
     private func fieldLabel(_ text: String) -> some View {
-        Text(text).font(.system(size: 12)).foregroundStyle(Palette.secondary).frame(minWidth: 34, alignment: .leading).fixedSize()
+        Text(text).font(.ui( 12)).foregroundStyle(Palette.secondary).frame(minWidth: 34, alignment: .leading).fixedSize()
     }
 
     private func maskedKey(_ key: String) -> some View {
-        Text(AIKey.masked(key)).font(.system(size: 13, design: .monospaced)).foregroundStyle(Palette.ink)
+        Text(AIKey.masked(key)).font(.ui( 13, design: .monospaced)).foregroundStyle(Palette.ink)
             .padding(.horizontal, 12).frame(maxWidth: .infinity, minHeight: 32, alignment: .leading)
             .background(RoundedRectangle(cornerRadius: 9).fill(Color.white))
             .overlay(RoundedRectangle(cornerRadius: 9).stroke(Palette.line, lineWidth: 1))
@@ -380,7 +380,7 @@ struct AISettingsView: View {
                       trailingColor: last?.ok == false ? Palette.error : Palette.tertiary)
         if open.contains("voice") {
             VStack(alignment: .leading, spacing: 8) {
-                Text("需支持 /audio/speech；不填则用本机声音。").font(.system(size: 11)).foregroundStyle(Palette.tertiary)
+                Text("需支持 /audio/speech；不填则用本机声音。").font(.ui( 11)).foregroundStyle(Palette.tertiary)
                 CommitField(label: L("模型"), placeholder: L("例如 qwen3-tts"), value: voiceModel) {
                     settings.aiVoiceModels["custom"] = $0
                     model.applyAIService()
@@ -409,9 +409,9 @@ struct AISettingsView: View {
             Circle().fill(!own ? Palette.ok : hear?.ok == true ? Palette.ok : hear == nil ? Color(white: 0.75) : Palette.error)
                 .frame(width: 8, height: 8)
             VStack(alignment: .leading, spacing: 2) {
-                Text("语音识别").font(.system(size: 13)).foregroundStyle(Palette.ink)
+                Text("语音识别").font(.ui( 13)).foregroundStyle(Palette.ink)
                 Text(own ? L("会议的声音会发到 \(host)；连不上时用本机") : L("更快，不花钱，声音不出这台 Mac"))
-                    .font(.system(size: 11)).foregroundStyle(Palette.tertiary).lineLimit(2).fixedSize(horizontal: false, vertical: true)
+                    .font(.ui( 11)).foregroundStyle(Palette.tertiary).lineLimit(2).fixedSize(horizontal: false, vertical: true)
             }
             Spacer(minLength: 8)
             Segments(options: [("mac", L("本机")), ("own", L("自建服务"))], value: own ? "own" : "mac") {
@@ -424,7 +424,7 @@ struct AISettingsView: View {
         if own {
             VStack(alignment: .leading, spacing: 8) {
                 Text("需支持 /audio/transcriptions，例如 Qwen3-ASR、Whisper。下一场会议起生效。")
-                    .font(.system(size: 11)).foregroundStyle(Palette.tertiary).fixedSize(horizontal: false, vertical: true)
+                    .font(.ui( 11)).foregroundStyle(Palette.tertiary).fixedSize(horizontal: false, vertical: true)
                 CommitField(label: L("模型"), placeholder: L("例如 qwen3-asr"), value: hearModel) {
                     settings.aiCustomHearModel = $0
                     model.applyAIService()
@@ -435,9 +435,9 @@ struct AISettingsView: View {
                 }
                 localNetworkNote(settings.aiCustomHearBase)
                 if hearModel.isEmpty {
-                    Text("填上模型才会用它识别。").font(.system(size: 12)).foregroundStyle(Palette.warn)
+                    Text("填上模型才会用它识别。").font(.ui( 12)).foregroundStyle(Palette.warn)
                 } else if let line = ling.aiCheck.hearLine(host: host, model: hearModel) {
-                    Text(line).font(.system(size: 12)).foregroundStyle(Palette.error).fixedSize(horizontal: false, vertical: true)
+                    Text(line).font(.ui( 12)).foregroundStyle(Palette.error).fixedSize(horizontal: false, vertical: true)
                     if hear == .localNetworkDenied {
                         HStack(spacing: 8) {
                             SoftButton(L("打开系统设置"), dark: true) { model.openLocalNetworkSettings() }
@@ -445,7 +445,7 @@ struct AISettingsView: View {
                         }
                     }
                 } else if case .ok(let s)? = hear {
-                    Text(L("听一秒音频 \(String(format: "%.1f", s)) 秒")).font(.system(size: 11)).foregroundStyle(Palette.tertiary)
+                    Text(L("听一秒音频 \(String(format: "%.1f", s)) 秒")).font(.ui( 11)).foregroundStyle(Palette.tertiary)
                 }
             }
             .padding(.leading, 34).padding(.trailing, 16).padding(.bottom, 14)
@@ -462,15 +462,15 @@ struct AISettingsView: View {
             VStack(alignment: .leading, spacing: 8) {
                 HStack(spacing: 8) {
                     Circle().fill(Palette.error).frame(width: 8, height: 8)
-                    Text("翻译连不上").font(.system(size: 14, weight: .semibold)).foregroundStyle(Palette.ink)
+                    Text("翻译连不上").font(.ui( 14, weight: .semibold)).foregroundStyle(Palette.ink)
                     Spacer()
                 }
                 Text(health.sentencesUntranslated ? L("新字幕暂时只有原文，连上后自动继续。")
                                                   : L("说话时的字幕要等说完一句才有翻译。"))
-                    .font(.system(size: 12)).foregroundStyle(Palette.secondary)
+                    .font(.ui( 12)).foregroundStyle(Palette.secondary)
                     .fixedSize(horizontal: false, vertical: true)
                 if let line = Self.proxyLine(health.proxy) {
-                    Text(line).font(.system(size: 12)).foregroundStyle(Palette.body)
+                    Text(line).font(.ui( 12)).foregroundStyle(Palette.body)
                         .padding(.horizontal, 10).padding(.vertical, 7)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .background(RoundedRectangle(cornerRadius: 8).fill(Palette.fill))
@@ -502,15 +502,15 @@ struct AISettingsView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 8) {
                 Circle().fill(statusColor).frame(width: 8, height: 8)
-                Text(statusTitle).font(.system(size: 14, weight: .semibold)).foregroundStyle(Palette.ink)
+                Text(statusTitle).font(.ui( 14, weight: .semibold)).foregroundStyle(Palette.ink)
                 if let detail = statusDetail {
-                    Text(detail).font(.system(size: 12)).foregroundStyle(Palette.tertiary).lineLimit(1)
+                    Text(detail).font(.ui( 12)).foregroundStyle(Palette.tertiary).lineLimit(1)
                 }
                 Spacer()
             }
             if let key = ling.key, !key.isEmpty, !editing {
                 HStack(spacing: 8) {
-                    Text(AIKey.masked(key)).font(.system(size: 13, design: .monospaced)).foregroundStyle(Palette.ink)
+                    Text(AIKey.masked(key)).font(.ui( 13, design: .monospaced)).foregroundStyle(Palette.ink)
                         .padding(.horizontal, 12).frame(maxWidth: .infinity, minHeight: 36, alignment: .leading)
                         .background(RoundedRectangle(cornerRadius: 10).fill(Color.white))
                         .overlay(RoundedRectangle(cornerRadius: 10).stroke(Palette.line, lineWidth: 1))
@@ -526,7 +526,7 @@ struct AISettingsView: View {
                 }
                 if let low = ling.aiCheck.balanceLine(service: name) {
                     HStack(spacing: 8) {
-                        Text(low).font(.system(size: 12)).foregroundStyle(Palette.warn)
+                        Text(low).font(.ui( 12)).foregroundStyle(Palette.warn)
                         Spacer()
                         SoftButton(L("去充值")) { NSWorkspace.shared.open(AICheckSteps.topUp(provider)) }
                     }
@@ -535,11 +535,11 @@ struct AISettingsView: View {
             } else {
                 if ling.key == nil, provider.id != .custom {
                     Text(L("在 \(name) 创建 key，复制后粘贴到这里。"))
-                        .font(.system(size: 12)).foregroundStyle(Palette.secondary)
+                        .font(.ui( 12)).foregroundStyle(Palette.secondary)
                 }
                 HStack(spacing: 8) {
                     SecureField(keyPlaceholder, text: $draft)
-                        .textFieldStyle(.plain).font(.system(size: 13, design: .monospaced))
+                        .textFieldStyle(.plain).font(.ui( 13, design: .monospaced))
                         .padding(.horizontal, 12).frame(height: 36)
                         .background(RoundedRectangle(cornerRadius: 10).fill(Color.white))
                         .overlay(RoundedRectangle(cornerRadius: 10).stroke(Palette.ink.opacity(0.6), lineWidth: 1))
@@ -549,7 +549,7 @@ struct AISettingsView: View {
                 }
                 if let hint = keyHint {
                     HStack(spacing: 8) {
-                        Text(hint.text).font(.system(size: 12)).foregroundStyle(Palette.error)
+                        Text(hint.text).font(.ui( 12)).foregroundStyle(Palette.error)
                             .fixedSize(horizontal: false, vertical: true)
                         Spacer()
                         if let other = hint.service {
@@ -564,16 +564,16 @@ struct AISettingsView: View {
                 }
                 if let site = provider.site, ling.key == nil {
                     Button(L("打开 \(name) ↗")) { NSWorkspace.shared.open(site) }
-                        .buttonStyle(.plain).font(.system(size: 12)).foregroundStyle(Palette.secondary)
+                        .buttonStyle(.plain).font(.ui( 12)).foregroundStyle(Palette.secondary)
                 }
             }
             HStack(spacing: 6) {
-                Image(systemName: "lock").font(.system(size: 11)).foregroundStyle(Palette.tertiary)
-                Text(lockLine).font(.system(size: 11)).foregroundStyle(Palette.tertiary).fixedSize(horizontal: false, vertical: true)
+                Image(systemName: "lock").font(.ui( 11)).foregroundStyle(Palette.tertiary)
+                Text(lockLine).font(.ui( 11)).foregroundStyle(Palette.tertiary).fixedSize(horizontal: false, vertical: true)
                 Spacer()
                 if let key = ling.key, !key.isEmpty, !editing {
                     Button("移除") { ling.removeKey() }
-                        .buttonStyle(.plain).font(.system(size: 11)).foregroundStyle(Palette.secondary)
+                        .buttonStyle(.plain).font(.ui( 11)).foregroundStyle(Palette.secondary)
                 }
             }
         }
@@ -583,9 +583,9 @@ struct AISettingsView: View {
 
     private func field(_ label: String, _ placeholder: String, _ text: Binding<String>) -> some View {
         HStack(spacing: 8) {
-            Text(label).font(.system(size: 12)).foregroundStyle(Palette.secondary).frame(minWidth: 34, alignment: .leading).fixedSize()
+            Text(label).font(.ui( 12)).foregroundStyle(Palette.secondary).frame(minWidth: 34, alignment: .leading).fixedSize()
             TextField(placeholder, text: text)
-                .textFieldStyle(.plain).font(.system(size: 13, design: .monospaced))
+                .textFieldStyle(.plain).font(.ui( 13, design: .monospaced))
                 .padding(.horizontal, 12).frame(height: 32)
                 .background(RoundedRectangle(cornerRadius: 9).fill(Color.white))
                 .overlay(RoundedRectangle(cornerRadius: 9).stroke(Palette.line, lineWidth: 1))
@@ -772,7 +772,7 @@ struct AISettingsView: View {
 
     private func usageRow(_ title: String, tag: String, style: TagStyle, note: String, divider: Bool = true) -> some View {
         SettingsRow(title: title, detail: note, divider: divider) {
-            Text(tag).font(.system(size: 11, weight: .semibold))
+            Text(tag).font(.ui( 11, weight: .semibold))
                 .foregroundStyle(style == .ok ? Palette.ok : style == .ling ? Palette.accentInk : style == .warn ? Palette.warn : Palette.secondary)
                 .padding(.horizontal, 8).padding(.vertical, 3)
                 .background(RoundedRectangle(cornerRadius: 6).fill(style == .ok ? Palette.okPale : style == .ling ? Palette.accentPale
@@ -857,7 +857,7 @@ struct ModelMenu: View {
         if typing {
             HStack(spacing: 6) {
                 TextField(L("模型名"), text: $typed)
-                    .textFieldStyle(.plain).font(.system(size: 12, design: .monospaced))
+                    .textFieldStyle(.plain).font(.ui( 12, design: .monospaced))
                     .padding(.horizontal, 8).frame(width: 220, height: 28)
                     .background(RoundedRectangle(cornerRadius: 7).fill(Color.white))
                     .overlay(RoundedRectangle(cornerRadius: 7).stroke(Palette.line, lineWidth: 1))
@@ -886,8 +886,8 @@ struct ModelMenu: View {
                 Button(L("填其他模型名…")) { typed = value; typing = true }
             } label: {
                 HStack(spacing: 6) {
-                    Text(value.isEmpty ? L("选一个") : value).font(.system(size: 13)).foregroundStyle(Palette.ink).lineLimit(1)
-                    Image(systemName: "chevron.up.chevron.down").font(.system(size: 9, weight: .semibold))
+                    Text(value.isEmpty ? L("选一个") : value).font(.ui( 13)).foregroundStyle(Palette.ink).lineLimit(1)
+                    Image(systemName: "chevron.up.chevron.down").font(.ui( 9, weight: .semibold))
                         .foregroundStyle(Palette.secondary)
                 }
                 .padding(.horizontal, 10).frame(height: 28)
@@ -933,7 +933,7 @@ struct ModelPicker: View {
         if catalog.isEmpty {
             HStack(spacing: 8) {
                 TextField(sameLabel ?? placeholder, text: $typed)
-                    .textFieldStyle(.plain).font(.system(size: 13, design: .monospaced))
+                    .textFieldStyle(.plain).font(.ui( 13, design: .monospaced))
                     .padding(.horizontal, 12).frame(height: 32)
                     .background(RoundedRectangle(cornerRadius: 9).fill(Color.white))
                     .overlay(RoundedRectangle(cornerRadius: 9).stroke(Palette.line, lineWidth: 1))
@@ -952,7 +952,7 @@ struct ModelPicker: View {
                         .font(value.isEmpty ? .system(size: 13) : .system(size: 13, design: .monospaced))
                         .foregroundStyle(value.isEmpty ? Palette.secondary : Palette.ink).lineLimit(1).truncationMode(.middle)
                     Spacer(minLength: 6)
-                    Image(systemName: "chevron.up.chevron.down").font(.system(size: 9, weight: .semibold)).foregroundStyle(Palette.secondary)
+                    Image(systemName: "chevron.up.chevron.down").font(.ui( 9, weight: .semibold)).foregroundStyle(Palette.secondary)
                 }
                 .padding(.horizontal, 12).frame(maxWidth: .infinity, minHeight: 32)
                 .background(RoundedRectangle(cornerRadius: 9).fill(Color.white))
@@ -973,9 +973,9 @@ struct ModelPicker: View {
         let q = query.trimmingCharacters(in: .whitespaces)
         return VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: 6) {
-                Image(systemName: "magnifyingglass").font(.system(size: 11)).foregroundStyle(Palette.tertiary)
+                Image(systemName: "magnifyingglass").font(.ui( 11)).foregroundStyle(Palette.tertiary)
                 TextField(L("搜索或输入模型"), text: $query)
-                    .textFieldStyle(.plain).font(.system(size: 12, design: .monospaced))
+                    .textFieldStyle(.plain).font(.ui( 12, design: .monospaced))
                     .onSubmit {
                         // Return: the only match, else exactly what was typed.
                         let m = matches
@@ -1001,9 +1001,9 @@ struct ModelPicker: View {
             .frame(maxHeight: 280)
             Divider()
             HStack {
-                Text(L("\(host) 列出 \(catalog.count) 个模型")).font(.system(size: 11)).foregroundStyle(Palette.tertiary)
+                Text(L("\(host) 列出 \(catalog.count) 个模型")).font(.ui( 11)).foregroundStyle(Palette.tertiary)
                 Spacer()
-                Button(L("重新获取"), action: refetch).buttonStyle(.plain).font(.system(size: 11)).foregroundStyle(Palette.link)
+                Button(L("重新获取"), action: refetch).buttonStyle(.plain).font(.ui( 11)).foregroundStyle(Palette.link)
             }
             .padding(.horizontal, 10).frame(height: 28)
         }
@@ -1013,7 +1013,7 @@ struct ModelPicker: View {
     private func row(_ text: String, selected: Bool, mono: Bool, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             HStack(spacing: 6) {
-                Image(systemName: "checkmark").font(.system(size: 10, weight: .semibold)).opacity(selected ? 1 : 0)
+                Image(systemName: "checkmark").font(.ui( 10, weight: .semibold)).opacity(selected ? 1 : 0)
                 Text(text).font(mono ? .system(size: 12, design: .monospaced) : .system(size: 12)).lineLimit(1).truncationMode(.middle)
                 Spacer(minLength: 0)
             }
@@ -1047,9 +1047,9 @@ private struct CommitField: View {
 
     var body: some View {
         HStack(spacing: 8) {
-            Text(label).font(.system(size: 12)).foregroundStyle(Palette.secondary).frame(minWidth: 34, alignment: .leading).fixedSize()
+            Text(label).font(.ui( 12)).foregroundStyle(Palette.secondary).frame(minWidth: 34, alignment: .leading).fixedSize()
             TextField(placeholder, text: $text)
-                .textFieldStyle(.plain).font(.system(size: 13, design: .monospaced))
+                .textFieldStyle(.plain).font(.ui( 13, design: .monospaced))
                 .padding(.horizontal, 12).frame(height: 30)
                 .background(RoundedRectangle(cornerRadius: 9).fill(Color.white))
                 .overlay(RoundedRectangle(cornerRadius: 9).stroke(Palette.line, lineWidth: 1))

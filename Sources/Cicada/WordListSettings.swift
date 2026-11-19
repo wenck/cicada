@@ -24,7 +24,7 @@ struct WordListSettings: View {
                             .toggleStyle(.switch).labelsHidden().controlSize(.small).tint(Palette.ink)
                     } else {
                         Button(L("去设置")) { model.settingsSection = .ai }
-                            .buttonStyle(.plain).font(.system(size: 12, weight: .medium)).foregroundStyle(Palette.link)
+                            .buttonStyle(.plain).font(.ui( 12, weight: .medium)).foregroundStyle(Palette.link)
                     }
                 }
                 SettingsRow(title: L("没见过的名字和专称先问我"), detail: L("关掉就只改词表里的词和同音错字"), divider: false) {
@@ -35,9 +35,9 @@ struct WordListSettings: View {
             }
 
             HStack(spacing: 10) {
-                Text("词").font(.system(size: 13, weight: .semibold)).foregroundStyle(Palette.secondary)
+                Text("词").font(.ui( 13, weight: .semibold)).foregroundStyle(Palette.secondary)
                 if !vocabulary.terms.isEmpty {
-                    Text("\(vocabulary.terms.count)").font(.system(size: 12).monospacedDigit()).foregroundStyle(Palette.tertiary)
+                    Text("\(vocabulary.terms.count)").font(.ui( 12).monospacedDigit()).foregroundStyle(Palette.tertiary)
                 }
                 Spacer()
                 if vocabulary.terms.count > 12 {
@@ -49,16 +49,16 @@ struct WordListSettings: View {
 
             if vocabulary.terms.isEmpty && deleted == nil {
                 Text("还没有词。把常用的人名、产品名贴进来，会中就照这些写法改")
-                    .font(.system(size: 12)).foregroundStyle(Palette.tertiary)
+                    .font(.ui( 12)).foregroundStyle(Palette.tertiary)
                     .frame(maxWidth: .infinity, alignment: .leading).padding(.vertical, 6)
             } else {
                 SettingsCard {
                     if let d = deleted {
                         HStack(spacing: 10) {
-                            (Text("已删除") + Text(verbatim: " ") + Text(d.term.word).bold()).font(.system(size: 13)).foregroundStyle(Palette.secondary)
+                            (Text("已删除") + Text(verbatim: " ") + Text(d.term.word).bold()).font(.ui( 13)).foregroundStyle(Palette.secondary)
                             Spacer()
                             Button(L("撤销")) { vocabulary.insert(d.term, at: d.index); deleted = nil }
-                                .buttonStyle(.plain).font(.system(size: 12, weight: .semibold)).foregroundStyle(Palette.link)
+                                .buttonStyle(.plain).font(.ui( 12, weight: .semibold)).foregroundStyle(Palette.link)
                         }
                         .padding(.horizontal, 16).frame(minHeight: 40)
                         Divider().padding(.leading, 16)
@@ -70,7 +70,7 @@ struct WordListSettings: View {
                 }
             }
             Text("最多 \(Vocabulary.limit) 个，满了优先用最近的。只存在这台 Mac 上")
-                .font(.system(size: 11)).foregroundStyle(Palette.tertiary)
+                .font(.ui( 11)).foregroundStyle(Palette.tertiary)
         }
         .sheet(isPresented: $importing) { WordImportSheet(vocabulary: vocabulary) }
     }
@@ -111,14 +111,14 @@ private struct WordRow: View {
             HStack(alignment: .center, spacing: 12) {
                 if editing {
                     TextField("", text: $word).textFieldStyle(.roundedBorder).controlSize(.small)
-                        .font(.system(size: 13, weight: .semibold)).frame(width: 140)
+                        .font(.ui( 13, weight: .semibold)).frame(width: 140)
                         .focused($wordFocused)
                         .onSubmit { vocabulary.rename(term.word, to: word); editing = false }
                         .onExitCommand { editing = false }
                         .onChange(of: wordFocused) { _, f in if !f && editing { vocabulary.rename(term.word, to: word); editing = false } }
                 } else {
                     Button { word = term.word; editing = true; wordFocused = true } label: {
-                        Text(term.word).font(.system(size: 13, weight: .semibold)).foregroundStyle(Palette.ink)
+                        Text(term.word).font(.ui( 13, weight: .semibold)).foregroundStyle(Palette.ink)
                             .lineLimit(1).frame(width: 140, alignment: .leading).contentShape(Rectangle())
                     }
                     .buttonStyle(.plain).help(L("点一下改写法"))
@@ -130,7 +130,7 @@ private struct WordRow: View {
                     // Only while pointed at (or typed in): hidden, it would still take room and wrap the forms.
                     if hovering || !newHeard.isEmpty {
                         TextField("加一个容易听错的词", text: $newHeard)
-                            .textFieldStyle(.plain).font(.system(size: 11)).frame(width: 110)
+                            .textFieldStyle(.plain).font(.ui( 11)).frame(width: 110)
                             .padding(.horizontal, 6).padding(.vertical, 2)
                             .overlay(RoundedRectangle(cornerRadius: 5).strokeBorder(style: StrokeStyle(lineWidth: 1, dash: [3, 2])).foregroundStyle(Color(white: 0.78)))
                             .onSubmit(addHeard)
@@ -138,20 +138,20 @@ private struct WordRow: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 Text(term.source == "live" ? L("会中确认") : L("你加的"))
-                    .font(.system(size: 11)).foregroundStyle(term.source == "live" ? Palette.accentInk : Palette.tertiary)
+                    .font(.ui( 11)).foregroundStyle(term.source == "live" ? Palette.accentInk : Palette.tertiary)
                     .lineLimit(1).fixedSize().frame(minWidth: 60, alignment: .leading)
                 Text(term.fixes > 0 ? L("改过 \(term.fixes) 次") : L("还没用上"))
-                    .font(.system(size: 11).monospacedDigit()).foregroundStyle(Palette.tertiary)
+                    .font(.ui( 11).monospacedDigit()).foregroundStyle(Palette.tertiary)
                     .lineLimit(1).fixedSize().frame(minWidth: 64, alignment: .leading)
                 Button(action: onRemove) {
-                    Image(systemName: "trash").font(.system(size: 11)).foregroundStyle(Palette.tertiary)
+                    Image(systemName: "trash").font(.ui( 11)).foregroundStyle(Palette.tertiary)
                 }
                 .buttonStyle(.plain).help(L("从词表里删掉")).opacity(hovering ? 1 : 0.35)
             }
             .padding(.horizontal, 16).frame(minHeight: 40)
             if let c = conflict {
                 HStack(spacing: 10) {
-                    Text("“\(c.heard)”已经记在 \(c.owner) 下").font(.system(size: 12)).foregroundStyle(Palette.ink)
+                    Text("“\(c.heard)”已经记在 \(c.owner) 下").font(.ui( 12)).foregroundStyle(Palette.ink)
                     Spacer()
                     SoftButton(L("改给 \(term.word)"), dark: true) {
                         vocabulary.forget(heard: c.heard, word: c.owner)
@@ -187,10 +187,10 @@ private struct HeardChip: View {
 
     var body: some View {
         HStack(spacing: 3) {
-            Text(text).font(.system(size: 11)).foregroundStyle(Palette.secondary)
+            Text(text).font(.ui( 11)).foregroundStyle(Palette.secondary)
             if hovering {
                 Button(action: onRemove) {
-                    Image(systemName: "xmark").font(.system(size: 8, weight: .bold)).foregroundStyle(Palette.tertiary)
+                    Image(systemName: "xmark").font(.ui( 8, weight: .bold)).foregroundStyle(Palette.tertiary)
                 }
                 .buttonStyle(.plain).accessibilityLabel(L("删掉这个听错的词"))
             }
@@ -213,14 +213,14 @@ private struct WordImportSheet: View {
         let preview = vocabulary.preview(text)
         let n = preview.added + preview.updated
         VStack(alignment: .leading, spacing: 12) {
-            Text("粘贴导入").font(.system(size: 15, weight: .bold)).foregroundStyle(Palette.ink)
-            Text("一行一个。常被听错的词，写在 = 后面").font(.system(size: 12)).foregroundStyle(Palette.secondary)
+            Text("粘贴导入").font(.ui( 15, weight: .bold)).foregroundStyle(Palette.ink)
+            Text("一行一个。常被听错的词，写在 = 后面").font(.ui( 12)).foregroundStyle(Palette.secondary)
             TextEditor(text: $text)
-                .font(.system(size: 13)).frame(height: 180)
+                .font(.ui( 13)).frame(height: 180)
                 .overlay(alignment: .topLeading) {
                     if text.isEmpty {
                         Text(verbatim: "Uniswap V3\nMorpho = 莫拉、莫法\n巡检")
-                            .font(.system(size: 13)).foregroundStyle(Palette.placeholder).padding(.leading, 5).padding(.top, 1)
+                            .font(.ui( 13)).foregroundStyle(Palette.placeholder).padding(.leading, 5).padding(.top, 1)
                             .allowsHitTesting(false)
                     }
                 }
@@ -230,15 +230,15 @@ private struct WordImportSheet: View {
             if let r = result {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("新增 \(r.added) · 补充听成 \(r.updated) · 跳过 \(r.skipped.count)")
-                        .font(.system(size: 12, weight: .medium)).foregroundStyle(Palette.ink)
+                        .font(.ui( 12, weight: .medium)).foregroundStyle(Palette.ink)
                     if !r.skipped.isEmpty {
                         Text("第 \(r.skipped.map(String.init).joined(separator: "、")) 行没加进去：超过 40 个字")
-                            .font(.system(size: 11)).foregroundStyle(Palette.accentInk)
+                            .font(.ui( 11)).foregroundStyle(Palette.accentInk)
                     }
                 }
             } else if !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 Text("新增 \(preview.added) · 补充听成 \(preview.updated) · 跳过 \(preview.skipped.count)")
-                    .font(.system(size: 12)).foregroundStyle(Palette.secondary)
+                    .font(.ui( 12)).foregroundStyle(Palette.secondary)
             }
             HStack {
                 Spacer()

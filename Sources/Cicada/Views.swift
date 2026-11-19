@@ -47,12 +47,12 @@ struct StatusLine: View {
         HStack(spacing: 8) {
             Circle().fill(tone == .waiting ? Self.waitingDot : tone == .needsYou ? Palette.error : Palette.tertiary)
                 .frame(width: 6, height: 6)
-            Text(text).font(.system(size: 12)).foregroundStyle(Palette.secondary)
+            Text(text).font(.ui( 12)).foregroundStyle(Palette.secondary)
                 .fixedSize(horizontal: false, vertical: true)
                 .frame(maxWidth: .infinity, alignment: .leading)
             if let action {
                 Button(action: action.run) {
-                    Text(action.title).font(.system(size: 12, weight: .semibold)).foregroundStyle(Palette.ink)
+                    Text(action.title).font(.ui( 12, weight: .semibold)).foregroundStyle(Palette.ink)
                         .padding(.vertical, 4).contentShape(Rectangle())
                 }
                 .buttonStyle(.plain).fixedSize()
@@ -107,18 +107,18 @@ struct ChoiceRow: View {
             }
         } label: {
             HStack(spacing: 10) {
-                Text(label).font(.system(size: 12)).foregroundStyle(Palette.secondary).frame(width: uiIsChinese ? 44 : 72, alignment: .leading)
-                Text(value).font(.system(size: 14, weight: .semibold)).foregroundStyle(Palette.ink).lineLimit(1)
+                Text(label).font(.ui( 12)).foregroundStyle(Palette.secondary).frame(width: uiIsChinese ? 44 : 72, alignment: .leading)
+                Text(value).font(.ui( 14, weight: .semibold)).foregroundStyle(Palette.ink).lineLimit(1)
                 if let badge {
                     Text(badge)
-                        .font(.system(size: 10, weight: .semibold))
+                        .font(.ui( 10, weight: .semibold))
                         .lineLimit(1).fixedSize()
                         .foregroundStyle(Palette.accentInk)
                         .padding(.horizontal, 7).padding(.vertical, 2)
                         .background(Capsule().fill(Palette.accentPale))
                 }
                 Spacer(minLength: 4)
-                Image(systemName: "chevron.down").font(.system(size: 10, weight: .semibold)).foregroundStyle(Palette.tertiary)
+                Image(systemName: "chevron.down").font(.ui( 10, weight: .semibold)).foregroundStyle(Palette.tertiary)
             }
             .padding(.horizontal, 12)
             .frame(height: compact ? 40 : 44)
@@ -180,7 +180,7 @@ struct MenuPanelView: View {
         })
         .onPreferenceChange(PanelHeightKey.self) { contentHeight = $0 }
         if contentHeight > maxHeight {
-            ScrollView { measured }.frame(width: 320, height: maxHeight).background(Color.white)
+            ScrollView { measured }.frame(width: UIStyle.pt(320), height: maxHeight).background(Color.white)
         } else {
             measured
         }
@@ -192,22 +192,22 @@ struct MenuPanelView: View {
                 LogoTile(size: 34)
                 VStack(alignment: .leading, spacing: 3) {
                     HStack(spacing: 6) {
-                        Text(appDisplayName).font(.system(size: 15, weight: .bold)).foregroundStyle(Palette.ink)
+                        Text(appDisplayName).font(.ui( 15, weight: .bold)).foregroundStyle(Palette.ink)
                         if let dev = DevBuild.label {
-                            Text("DEV").font(.system(size: 9, weight: .heavy)).foregroundStyle(.white)
+                            Text("DEV").font(.ui( 9, weight: .heavy)).foregroundStyle(.white)
                                 .padding(.horizontal, 5).padding(.vertical, 1)
                                 .background(Capsule().fill(Palette.ink))
                                 .help(dev)
                         }
                     }
                     if let dev = DevBuild.label {
-                        Text(dev).font(.system(size: 10).monospaced()).foregroundStyle(Palette.tertiary).lineLimit(1)
+                        Text(dev).font(.ui( 10).monospaced()).foregroundStyle(Palette.tertiary).lineLimit(1)
                     }
                     HStack(spacing: 6) {
                         Circle().fill(model.running ? Palette.accent : Color.gray.opacity(0.5)).frame(width: 7, height: 7)
                         // Two lines: "English (detecting…) → 简体中文" doesn't fit one beside the switch.
                         Text(model.running ? model.summary : model.autoEnded ? L("会议已自动结束") : L("已暂停"))
-                            .font(.system(size: 12)).foregroundStyle(Palette.secondary).lineLimit(2)
+                            .font(.ui( 12)).foregroundStyle(Palette.secondary).lineLimit(2)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                     PanelImportLine(importer: model.importer, store: model.store)
@@ -247,8 +247,8 @@ struct MenuPanelView: View {
             if let strip = systemMicStrip {
                 HStack(spacing: 10) {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(strip.title).font(.system(size: 12)).foregroundStyle(Palette.accentInk)
-                        Text(strip.detail).font(.system(size: 11)).foregroundStyle(Palette.secondary)
+                        Text(strip.title).font(.ui( 12)).foregroundStyle(Palette.accentInk)
+                        Text(strip.detail).font(.ui( 11)).foregroundStyle(Palette.secondary)
                     }
                     Spacer()
                     SoftButton(strip.button, dark: true, action: strip.action)
@@ -261,13 +261,13 @@ struct MenuPanelView: View {
 
             VStack(alignment: .leading, spacing: 10) {
                 HStack {
-                    Text("显示方式").font(.system(size: 14, weight: .semibold)).foregroundStyle(Palette.ink)
+                    Text("显示方式").font(.ui( 14, weight: .semibold)).foregroundStyle(Palette.ink)
                     Spacer()
                     HStack(spacing: 5) {
                         KeyCap(settings.toggleKey.display)
                         Text("轮换").foregroundStyle(Palette.tertiary)
                     }
-                    .font(.system(size: 11))
+                    .font(.ui( 11))
                     .help(L("切换显示方式"))
                 }
                 HStack(spacing: 8) {
@@ -286,7 +286,7 @@ struct MenuPanelView: View {
             footer
         }
         .padding(16)
-        .frame(width: 320)
+        .frame(width: UIStyle.pt(320))
         .background(Color.white)
     }
 
@@ -328,8 +328,8 @@ extension MenuPanelView {
     var hybridMicStrip: some View {
         HStack(spacing: 10) {
             VStack(alignment: .leading, spacing: 2) {
-                Text("听会议室要先允许麦克风").font(.system(size: 13, weight: .semibold)).foregroundStyle(Palette.ink)
-                Text("电脑声音照常在记").font(.system(size: 11)).foregroundStyle(Palette.secondary)
+                Text("听会议室要先允许麦克风").font(.ui( 13, weight: .semibold)).foregroundStyle(Palette.ink)
+                Text("电脑声音照常在记").font(.ui( 11)).foregroundStyle(Palette.secondary)
             }
             Spacer(minLength: 0)
             SoftButton(L("去设置"), dark: true) { model.openMicrophoneSettings() }
@@ -343,8 +343,8 @@ extension MenuPanelView {
     /// 外接麦克风断开了: what Cicada did instead. Goes away by itself.
     func roomMicLostStrip(_ next: String) -> some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text("外接麦克风断开了").font(.system(size: 13, weight: .semibold)).foregroundStyle(Palette.ink)
-            Text(next).font(.system(size: 11)).foregroundStyle(Palette.secondary)
+            Text("外接麦克风断开了").font(.ui( 13, weight: .semibold)).foregroundStyle(Palette.ink)
+            Text(next).font(.ui( 11)).foregroundStyle(Palette.secondary)
         }
         .padding(12).frame(maxWidth: .infinity, alignment: .leading)
         .background(RoundedRectangle(cornerRadius: 11).fill(Palette.accentPale))
@@ -364,7 +364,7 @@ struct PanelImportLine: View {
                     .frame(width: 10, height: 10)
                 Text(importer.queue.isEmpty ? L("后台转写 \(name) · \(Int(importer.progress * 100))%")
                      : L("后台转写 \(name) · \(Int(importer.progress * 100))%，还有 \(importer.queue.count) 个"))
-                    .font(.system(size: 12)).foregroundStyle(Palette.secondary).lineLimit(1).truncationMode(.middle)
+                    .font(.ui( 12)).foregroundStyle(Palette.secondary).lineLimit(1).truncationMode(.middle)
             }
         }
     }
@@ -387,12 +387,12 @@ extension MenuPanelView {
                 }
             case "none":
                 Text("屏幕上不出字幕，文字记录照常保存")
-                    .font(.system(size: 12)).foregroundStyle(Palette.secondary)
+                    .font(.ui( 12)).foregroundStyle(Palette.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             default:
                 // Shown only without a Ling key: the notes window itself opens and closes from the tile.
                 Text(Recognition.cloudOnly ? L("填入 Ling key 后才能识别语音、出字幕和纪要") : L("填入 API key 后可生成纪要；文字记录照常保存"))
-                    .font(.system(size: 12)).foregroundStyle(Palette.secondary)
+                    .font(.ui( 12)).foregroundStyle(Palette.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
@@ -406,7 +406,7 @@ extension MenuPanelView {
 
     /// A label and its control on one line, or stacked when the English runs too wide.
     private func cardRow<C: View>(_ title: String, @ViewBuilder control: () -> C) -> some View {
-        let label = Text(title).font(.system(size: 12)).foregroundStyle(Palette.ink)
+        let label = Text(title).font(.ui( 12)).foregroundStyle(Palette.ink)
         let c = control()
         return ViewThatFits(in: .horizontal) {
             HStack(spacing: 0) { label; Spacer(minLength: 8); c }
@@ -434,9 +434,9 @@ extension MenuPanelView {
     var micRow: some View {
         HStack(spacing: 10) {
             VStack(alignment: .leading, spacing: 2) {
-                Text("麦克风").font(.system(size: 14, weight: .semibold)).foregroundStyle(Palette.ink)
+                Text("麦克风").font(.ui( 14, weight: .semibold)).foregroundStyle(Palette.ink)
                 Text(model.micOn ? L("桌边的人说话也会记下") : L("关着 · 只听电脑声音"))
-                    .font(.system(size: 12)).foregroundStyle(Palette.secondary)
+                    .font(.ui( 12)).foregroundStyle(Palette.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
             Spacer(minLength: 8)
@@ -460,9 +460,9 @@ struct MicButton: View {
             Button { model.setMic(!on) } label: {
                 HStack(spacing: 5) {
                     Image(systemName: on ? "mic.fill" : "mic")
-                        .font(.system(size: 11, weight: .semibold))
+                        .font(.ui( 11, weight: .semibold))
                         .foregroundStyle(on ? Palette.accent : (inHeader ? Palette.ink : Color.white))
-                    Text(on ? L("关闭麦克风") : L("打开麦克风")).font(.system(size: 12, weight: .semibold))
+                    Text(on ? L("关闭麦克风") : L("打开麦克风")).font(.ui( 12, weight: .semibold))
                         .foregroundStyle(ink(on))
                         .lineLimit(1).fixedSize()
                 }
@@ -494,7 +494,7 @@ struct MicButton: View {
             }
             .pickerStyle(.inline)
         } label: {
-            Image(systemName: "chevron.down").font(.system(size: 9, weight: .bold))
+            Image(systemName: "chevron.down").font(.ui( 9, weight: .bold))
                 .foregroundStyle(ink(on).opacity(0.75))
                 .frame(width: 24, height: 28).contentShape(Rectangle())
         }
@@ -545,16 +545,16 @@ extension MenuPanelView {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 12) {
                 VStack(alignment: .leading, spacing: 3) {
-                    Text("同声传译").font(.system(size: 14, weight: .semibold)).foregroundStyle(Palette.ink)
+                    Text("同声传译").font(.ui( 14, weight: .semibold)).foregroundStyle(Palette.ink)
                     if !settings.speakEnabled && !model.speakAsking {
-                        Text("说\(speakFrom) → \(speakTarget)").font(.system(size: 12))
+                        Text("说\(speakFrom) → \(speakTarget)").font(.ui( 12))
                             .foregroundStyle(Palette.secondary).lineLimit(1)
                     }
                 }
                 Spacer(minLength: 8)
                 if settings.speakEnabled {
                     Button("设置") { model.openSettings(.speak) }
-                        .buttonStyle(.plain).font(.system(size: 12)).foregroundStyle(Palette.tertiary)
+                        .buttonStyle(.plain).font(.ui( 12)).foregroundStyle(Palette.tertiary)
                 }
                 Toggle("同声传译", isOn: Binding(get: { settings.speakEnabled || model.speakAsking }, set: setSpeaking))
                     .toggleStyle(.switch).labelsHidden()
@@ -567,7 +567,7 @@ extension MenuPanelView {
                 talkCard
                 if model.lastSpeakLatency == nil, model.virtualMic != nil, !settings.listensToRoom, model.speakPhase == .idle {
                     Button("先试一句 →") { model.openSettings(.speak); model.speakTestShown = true }
-                        .buttonStyle(.plain).font(.system(size: 12)).foregroundStyle(Palette.secondary)
+                        .buttonStyle(.plain).font(.ui( 12)).foregroundStyle(Palette.secondary)
                 }
             }
         }
@@ -582,7 +582,7 @@ extension MenuPanelView {
     /// Asked once: switching the system mic is a change people should hear about before it happens.
     private var speakQuestion: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("打开后：").font(.system(size: 13, weight: .semibold)).foregroundStyle(Palette.ink)
+            Text("打开后：").font(.ui( 13, weight: .semibold)).foregroundStyle(Palette.ink)
             questionLine(1) { Text(speakMicLine) }
             questionLine(2) {
                 ViewThatFits(in: .horizontal) {
@@ -611,7 +611,7 @@ extension MenuPanelView {
             Text("\(n)").foregroundStyle(Palette.tertiary).frame(width: 12, alignment: .leading)
             content().foregroundStyle(Palette.ink).fixedSize(horizontal: false, vertical: true)
         }
-        .font(.system(size: 12))
+        .font(.ui( 12))
     }
 
     /// The first thing keeping the room from hearing you, with the one action that fixes it.
@@ -651,7 +651,7 @@ extension MenuPanelView {
         return HStack(spacing: 12) {
             TalkKeyCap(text: talkKeyName, pressed: phase == .listening, live: live)
             VStack(alignment: .leading, spacing: 3) {
-                Text(title).font(.system(size: 13, weight: .semibold))
+                Text(title).font(.ui( 13, weight: .semibold))
                     .foregroundStyle(live ? Palette.accentInk : Palette.ink).lineLimit(1)
                 if let problem {
                     HStack(alignment: .firstTextBaseline, spacing: 6) {
@@ -660,9 +660,9 @@ extension MenuPanelView {
                         Button(problem.button, action: problem.action)
                             .buttonStyle(.plain).fontWeight(.semibold).foregroundStyle(Palette.accentInk).fixedSize()
                     }
-                    .font(.system(size: 11))
+                    .font(.ui( 11))
                 } else {
-                    Text(detail).font(.system(size: 11)).foregroundStyle(Palette.secondary).lineLimit(2)
+                    Text(detail).font(.ui( 11)).foregroundStyle(Palette.secondary).lineLimit(2)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
@@ -686,7 +686,7 @@ struct TalkKeyCap: View {
     let live: Bool
     var body: some View {
         Text(text)
-            .font(.system(size: 12, weight: .bold))
+            .font(.ui( 12, weight: .bold))
             .foregroundStyle(live ? Palette.accentInk : Palette.ink)
             .lineLimit(1).fixedSize()
             .padding(.horizontal, 8)
@@ -721,12 +721,12 @@ struct DisplayTile: View {
             VStack(spacing: 6) {
                 glyph.frame(height: 26).opacity(selected ? 1 : 0.7)
                 Text(title)
-                    .font(.system(size: 12, weight: selected ? .semibold : .regular))
+                    .font(.ui( 12, weight: selected ? .semibold : .regular))
                     .foregroundStyle(selected ? Palette.ink : Palette.secondary)
                     .lineLimit(1).minimumScaleFactor(0.8)
                     .fixedSize(horizontal: false, vertical: true)
                 if let caption {
-                    Text(caption).font(.system(size: 10)).foregroundStyle(Palette.secondary)
+                    Text(caption).font(.ui( 10)).foregroundStyle(Palette.secondary)
                         .lineLimit(1).minimumScaleFactor(0.8).padding(.top, -4)
                 }
             }
@@ -774,7 +774,7 @@ struct KeyCap: View {
     init(_ text: String) { self.text = text }
     var body: some View {
         Text(text)
-            .font(.system(size: 11, weight: .semibold))
+            .font(.ui( 11, weight: .semibold))
             .foregroundStyle(Palette.ink)
             .padding(.horizontal, 6).padding(.vertical, 1)
             .background(RoundedRectangle(cornerRadius: 5).fill(Color.white))
@@ -798,8 +798,8 @@ struct PanelAction: View {
     var body: some View {
         Button(action: action) {
             VStack(spacing: 4) {
-                Image(systemName: symbol).font(.system(size: 14, weight: .medium))
-                Text(title).font(.system(size: 12, weight: .semibold)).lineLimit(1).minimumScaleFactor(0.8)
+                Image(systemName: symbol).font(.ui( 14, weight: .medium))
+                Text(title).font(.ui( 12, weight: .semibold)).lineLimit(1).minimumScaleFactor(0.8)
             }
             .foregroundStyle(quiet ? Palette.secondary : Palette.ink)
             .frame(maxWidth: .infinity, minHeight: 52)
@@ -926,13 +926,13 @@ struct MainWindowView: View {
                 Image(systemName: "magnifyingglass").foregroundStyle(Palette.secondary)
                 TextField("搜索", text: $query).textFieldStyle(.plain).focused($searchFocused)
                 if query.isEmpty {
-                    Text("⌘F").font(.system(size: 11)).foregroundStyle(Palette.secondary)
+                    Text("⌘F").font(.ui( 11)).foregroundStyle(Palette.secondary)
                 } else {
                     Button { query = "" } label: { Image(systemName: "xmark.circle.fill") }
                         .buttonStyle(.plain).foregroundStyle(Palette.secondary).help("清除")
                 }
             }
-            .font(.system(size: 13))
+            .font(.ui( 13))
             .padding(.horizontal, 12).frame(height: 30)
             .padding(.bottom, 6)
 
@@ -942,7 +942,7 @@ struct MainWindowView: View {
                     let all = RecordList.groups(filtered)
                     let folded = query.isEmpty && !showOlder && all.count > 1
                     ForEach(Array((folded ? Array(all.prefix(1)) : all).enumerated()), id: \.element.title) { i, g in
-                        Text(g.title).font(.system(size: 11, weight: .semibold)).foregroundStyle(Palette.secondary)
+                        Text(g.title).font(.ui( 11, weight: .semibold)).foregroundStyle(Palette.secondary)
                             .padding(.horizontal, 12).padding(.top, i == 0 ? 0 : 18).padding(.bottom, 6)
                         ForEach(g.sessions) { sessionRow($0) }
                     }
@@ -951,10 +951,10 @@ struct MainWindowView: View {
                             HStack {
                                 Text(showOlder ? L("收起更早的会议") : L("更早的会议"))
                                 Spacer()
-                                Image(systemName: "chevron.right").font(.system(size: 10, weight: .semibold))
+                                Image(systemName: "chevron.right").font(.ui( 10, weight: .semibold))
                                     .rotationEffect(.degrees(showOlder ? -90 : 0))
                             }
-                            .font(.system(size: 13)).foregroundStyle(Palette.secondary)
+                            .font(.ui( 13)).foregroundStyle(Palette.secondary)
                             .padding(.horizontal, 12).padding(.vertical, 9)
                             .contentShape(Rectangle())
                         }
@@ -962,7 +962,7 @@ struct MainWindowView: View {
                         .padding(.top, 12)
                     }
                     if filtered.isEmpty {
-                        Text("没有找到“\(query)”").font(.system(size: 12)).foregroundStyle(Palette.secondary)
+                        Text("没有找到“\(query)”").font(.ui( 12)).foregroundStyle(Palette.secondary)
                             .padding(.horizontal, 10)
                     }
                 }
@@ -987,23 +987,23 @@ struct MainWindowView: View {
             HStack(spacing: 8) {
                 if live { BreathingDot(size: 6) }
                 if s.sourceFile != nil {
-                    Image(systemName: "doc").font(.system(size: 11)).foregroundStyle(Palette.secondary)
+                    Image(systemName: "doc").font(.ui( 11)).foregroundStyle(Palette.secondary)
                 } else if s.fromRecording, s.lines.isEmpty {
-                    Image(systemName: "waveform").font(.system(size: 11)).foregroundStyle(Palette.secondary)
+                    Image(systemName: "waveform").font(.ui( 11)).foregroundStyle(Palette.secondary)
                         .help(L("只有录音"))
                 } else if RecordList.heardBoth(s.lines) {
                     HStack(spacing: 2) {
                         Image(systemName: "mic")
                         Image(systemName: "display")
                     }
-                    .font(.system(size: 10)).foregroundStyle(Palette.secondary)
+                    .font(.ui( 10)).foregroundStyle(Palette.secondary)
                     .help(L("电脑和会议室"))
                 } else if s.room == true {
-                    Image(systemName: "mic").font(.system(size: 11)).foregroundStyle(Palette.secondary)
+                    Image(systemName: "mic").font(.ui( 11)).foregroundStyle(Palette.secondary)
                         .help(L("会议室"))
                 }
                 Text(RecordList.untitled(s) ? L("未命名会议") : RecordList.listTitle(s))
-                    .font(.system(size: 13, weight: selected ? .semibold : .regular))
+                    .font(.ui( 13, weight: selected ? .semibold : .regular))
                     .foregroundStyle(selected || live ? Palette.ink : Palette.secondary).lineLimit(1)
                 Spacer(minLength: 0)
                 if let status = importer.status(of: s) { Tag(rowTag(status), live: status == .running) }
@@ -1071,7 +1071,7 @@ struct MainWindowView: View {
                             Text(s.id == store.liveID ? L("正在听，说话的内容会出现在这里")
                                  : working(s) ? L("转出的文字会陆续出现在这里")
                                  : s.fromRecording ? L("还没有文字记录") : L("这场会议没有记录到内容"))
-                                .font(.system(size: 13)).foregroundStyle(Palette.secondary)
+                                .font(.ui( 13)).foregroundStyle(Palette.secondary)
                         }
                 } else if tab == "notes", importer.status(of: s) == nil {
                     HStack(spacing: 0) {
@@ -1109,14 +1109,14 @@ struct MainWindowView: View {
     private var welcome: some View {
         VStack(spacing: 0) {
             BrandMark(size: 72).shadow(color: Palette.accent.opacity(0.22), radius: 14, y: 8)
-            Text("还没有会议").font(.system(size: 26, weight: .bold)).padding(.top, 28)
+            Text("还没有会议").font(.ui( 26, weight: .bold)).padding(.top, 28)
             Text("打开会议或视频，开始听后，每一场都会存在这里。")
-                .font(.system(size: 15)).foregroundStyle(Palette.secondary).multilineTextAlignment(.center)
+                .font(.ui( 15)).foregroundStyle(Palette.secondary).multilineTextAlignment(.center)
                 .padding(.top, 10)
             Button { model.setRunning(true) } label: {
                 HStack(spacing: 10) {
                     Circle().fill(Palette.accent).frame(width: 9, height: 9)
-                    Text("开始听").font(.system(size: 15, weight: .semibold))
+                    Text("开始听").font(.ui( 15, weight: .semibold))
                 }
                 .foregroundStyle(.white).padding(.horizontal, 22).frame(height: 44)
                 .background(Capsule().fill(Palette.ink))
@@ -1124,9 +1124,9 @@ struct MainWindowView: View {
             }
             .buttonStyle(.plain).padding(.top, 32)
             Button("先听一段示例") { model.ensureListening(); model.sample.play() }
-                .buttonStyle(.plain).font(.system(size: 13)).foregroundStyle(Palette.secondary).padding(.top, 16)
+                .buttonStyle(.plain).font(.ui( 13)).foregroundStyle(Palette.secondary).padding(.top, 16)
             Button("或导入录音、视频…") { model.chooseImportFiles() }
-                .buttonStyle(.plain).font(.system(size: 13)).foregroundStyle(Palette.ink).padding(.top, 8)
+                .buttonStyle(.plain).font(.ui( 13)).foregroundStyle(Palette.ink).padding(.top, 8)
         }
         .frame(maxWidth: 420)
         .padding(.bottom, 60)
@@ -1140,15 +1140,15 @@ struct MainWindowView: View {
             HStack(alignment: .top, spacing: 14) {
                 HStack(spacing: 6) {
                     BreathingDot(size: 6)
-                    Text("此刻").font(.system(size: 11, weight: .bold)).foregroundStyle(Palette.accentInk)
+                    Text("此刻").font(.ui( 11, weight: .bold)).foregroundStyle(Palette.accentInk)
                 }
                 .frame(width: 52, alignment: .leading).padding(.top, 2)
                 VStack(alignment: .leading, spacing: 3) {
-                    Text(src).font(.system(size: 13)).foregroundStyle(Palette.secondary)
+                    Text(src).font(.ui( 13)).foregroundStyle(Palette.secondary)
                         .lineLimit(2).truncationMode(.head)
                     // 听不出 replaces the stuck 正在识别语言…; it says what to do instead.
                     if !model.liveTranslation.isEmpty, model.languageAsk.isEmpty {
-                        Text(model.liveTranslation).font(.system(size: 15)).foregroundStyle(Palette.ink)
+                        Text(model.liveTranslation).font(.ui( 15)).foregroundStyle(Palette.ink)
                             .lineLimit(2).truncationMode(.head)
                     }
                     LanguageNotice(model: model).padding(.top, 4)
@@ -1192,8 +1192,8 @@ struct MainWindowView: View {
             } else if wideEnough, !s.lines.isEmpty {
                 Button { withAnimation(.easeOut(duration: 0.2)) { showQuotes.toggle() } } label: {
                     HStack(spacing: 5) {
-                        Image(systemName: "sidebar.right").font(.system(size: 12))
-                        Text("原话").font(.system(size: 13))
+                        Image(systemName: "sidebar.right").font(.ui( 12))
+                        Text("原话").font(.ui( 13))
                     }
                     .foregroundStyle(showQuotes ? Palette.ink : Palette.secondary)
                     .contentShape(Rectangle())
@@ -1203,7 +1203,7 @@ struct MainWindowView: View {
             }
             // Not while the meeting is still going, nor before an import has its text.
             Button { sharing = s } label: {
-                Text("分享…").font(.system(size: 13)).foregroundStyle(Palette.secondary)
+                Text("分享…").font(.ui( 13)).foregroundStyle(Palette.secondary)
             }
             .buttonStyle(.plain)
             .disabled((s.lines.isEmpty && (s.notes?.isEmpty ?? true)) || store.liveID == s.id || importer.status(of: s) != nil)
@@ -1214,7 +1214,7 @@ struct MainWindowView: View {
                         Button(lang.name) { importer.retry(s.id, lang: lang) }
                     }
                 } label: {
-                    Text("重新转写").font(.system(size: 13)).foregroundStyle(Palette.secondary)
+                    Text("重新转写").font(.ui( 13)).foregroundStyle(Palette.secondary)
                 }
                 .menuStyle(.button).buttonStyle(.plain).menuIndicator(.hidden).fixedSize()
                 .help(L("用保存的录音重新识别，替换现在的文字记录和纪要；旧记录会先备份"))
@@ -1228,7 +1228,7 @@ struct MainWindowView: View {
                 Divider()
                 Button("在 Finder 中显示") { NSWorkspace.shared.activateFileViewerSelecting([store.folder(s.id)]) }
             } label: {
-                Text("导出…").font(.system(size: 13)).foregroundStyle(Palette.secondary)
+                Text("导出…").font(.ui( 13)).foregroundStyle(Palette.secondary)
             }
             .menuStyle(.button).buttonStyle(.plain).menuIndicator(.hidden).fixedSize()
             .disabled(s.lines.isEmpty)
@@ -1239,9 +1239,9 @@ struct MainWindowView: View {
         let on = active == id
         return Button { tab = id } label: {
             HStack(spacing: 5) {
-                Text(title).font(.system(size: 13, weight: on ? .semibold : .regular))
+                Text(title).font(.ui( 13, weight: on ? .semibold : .regular))
                     .foregroundStyle(on ? Palette.ink : Palette.secondary)
-                if let count { Text("\(count)").font(.system(size: 12).monospacedDigit()).foregroundStyle(Palette.secondary) }
+                if let count { Text("\(count)").font(.ui( 12).monospacedDigit()).foregroundStyle(Palette.secondary) }
                 if let badge { Tag(badge) }
             }
             .fixedSize()
@@ -1260,7 +1260,7 @@ struct MainWindowView: View {
                 HStack(spacing: 6) {
                     if s.id == store.liveID { BreathingDot(size: 6) }
                     Text(RecordList.untitled(s) ? L("未命名会议") : RecordList.listTitle(s))
-                        .font(.system(size: 13, weight: .semibold)).foregroundStyle(Palette.ink).lineLimit(1)
+                        .font(.ui( 13, weight: .semibold)).foregroundStyle(Palette.ink).lineLimit(1)
                 }
                 .contentShape(Rectangle())
             }
@@ -1291,7 +1291,7 @@ struct MainWindowView: View {
                 if live { Tag(L("正在记录"), live: true) }
                 Text(([dateText(s.startedAt, "MMMdHHmm"), RecordList.length(s)] + (s.sourceFile.map { [$0, L("导入")] } ?? [])
                       + (RecordList.heardBoth(s.lines) ? [L("电脑和会议室")] : s.room == true ? [L("会议室")] : [])).joined(separator: " · "))
-                    .font(.system(size: 12).monospacedDigit()).foregroundStyle(Palette.tertiary).lineLimit(1)
+                    .font(.ui( 12).monospacedDigit()).foregroundStyle(Palette.tertiary).lineLimit(1)
                     .help(([dateLine(s, live: live)] + more.compactMap { $0 }).joined(separator: " · "))
             }
             RecordTitleField(session: s, store: store).id(s.id).padding(.top, 8)
@@ -1307,7 +1307,7 @@ struct MainWindowView: View {
                 .padding(.top, 16)
             } else if live {
                 if settings.recordAudio {
-                    Text("会议结束后可以回放录音").font(.system(size: 12)).foregroundStyle(Palette.tertiary).padding(.top, 10)
+                    Text("会议结束后可以回放录音").font(.ui( 12)).foregroundStyle(Palette.tertiary).padding(.top, 10)
                 }
             } else if !s.hasAudio, !s.lines.isEmpty {
                 HStack(spacing: 4) {
@@ -1315,7 +1315,7 @@ struct MainWindowView: View {
                     Button(L("保存会议录音")) { model.openSettings(.records) }
                         .buttonStyle(.plain).foregroundStyle(Palette.link)
                 }
-                .font(.system(size: 12)).padding(.top, 10)
+                .font(.ui( 12)).padding(.top, 10)
             }
             tabsRow(s).padding(.top, 24)
         }
@@ -1328,10 +1328,10 @@ struct MainWindowView: View {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 0) {
                     HStack {
-                        Text("原话").font(.system(size: 12)).foregroundStyle(Palette.secondary)
+                        Text("原话").font(.ui( 12)).foregroundStyle(Palette.secondary)
                         Spacer()
                         Button(L("全部 \(s.lines.count) 句")) { tab = "transcript" }
-                            .buttonStyle(.plain).font(.system(size: 12)).foregroundStyle(Palette.secondary)
+                            .buttonStyle(.plain).font(.ui( 12)).foregroundStyle(Palette.secondary)
                     }
                     .padding(.bottom, 8)
                     let speakers = settings.speakerVoices ? SpeakerLabels.numbers(s) : [:]
@@ -1371,9 +1371,9 @@ struct MainWindowView: View {
             } else if let speaker { SpeakerTag(number: speaker).padding(.bottom, 2) }
             else if voices, l.speaker != "me" { UnknownSpeakerTag().padding(.bottom, 2) }
             else if l.speaker == "me" { MeTag().padding(.bottom, 2) }
-            Text(l.shown).font(.system(size: 12)).foregroundStyle(Palette.secondary).lineSpacing(1)
+            Text(l.shown).font(.ui( 12)).foregroundStyle(Palette.secondary).lineSpacing(1)
                 .textSelection(.enabled)
-            Text(l.dst ?? L("翻译中…")).font(.system(size: 14)).lineSpacing(2)
+            Text(l.dst ?? L("翻译中…")).font(.ui( 14)).lineSpacing(2)
                 .foregroundStyle(l.dst == nil ? Palette.secondary : Palette.ink)
                 .textSelection(.enabled)
         }
@@ -1440,9 +1440,9 @@ struct MainWindowView: View {
                    let l = s.lines.first(where: { $0.id == id }) {
                     Button { player.follow() } label: {
                         HStack(spacing: 6) {
-                            Image(systemName: "waveform").font(.system(size: 11, weight: .semibold))
+                            Image(systemName: "waveform").font(.ui( 11, weight: .semibold))
                             Text(L("回到正在播放") + " · " + TranscriptExport.clock(l.t))
-                                .font(.system(size: 13, weight: .semibold))
+                                .font(.ui( 13, weight: .semibold))
                         }
                         .foregroundStyle(.white).padding(.horizontal, 16).frame(height: 34)
                         .background(Capsule().fill(Palette.ink))
@@ -1489,9 +1489,9 @@ struct MainWindowView: View {
                 // The recording plays from this line (so does a click anywhere on it).
                 Button { player.play(from: l.t) } label: {
                     HStack(spacing: 3) {
-                        if hovered { Image(systemName: "play.fill").font(.system(size: 8)) }
+                        if hovered { Image(systemName: "play.fill").font(.ui( 8)) }
                         Text(TranscriptExport.clock(l.t))
-                            .font(.system(size: 12, weight: current || hovered ? .semibold : .regular).monospacedDigit())
+                            .font(.ui( 12, weight: current || hovered ? .semibold : .regular).monospacedDigit())
                     }
                     .foregroundStyle(current || hovered ? Palette.accent : Palette.link)
                     .frame(width: 52, alignment: .leading).padding(.top, 1).contentShape(Rectangle())
@@ -1499,7 +1499,7 @@ struct MainWindowView: View {
                 .buttonStyle(.plain).help(L("从这里播放"))
             } else {
                 Text(TranscriptExport.clock(l.t))
-                    .font(.system(size: 12).monospacedDigit()).foregroundStyle(Palette.tertiary)
+                    .font(.ui( 12).monospacedDigit()).foregroundStyle(Palette.tertiary)
                     .frame(width: 52, alignment: .leading).padding(.top, 1)
             }
             VStack(alignment: .leading, spacing: 5) {
@@ -1531,8 +1531,8 @@ struct MainWindowView: View {
                             }
                         } label: {
                             HStack(spacing: 3) {
-                                Text("对方").font(.system(size: 11, weight: .semibold)).foregroundStyle(Palette.secondary)
-                                Image(systemName: "chevron.down").font(.system(size: 7, weight: .bold)).foregroundStyle(Palette.tertiary)
+                                Text("对方").font(.ui( 11, weight: .semibold)).foregroundStyle(Palette.secondary)
+                                Image(systemName: "chevron.down").font(.ui( 7, weight: .bold)).foregroundStyle(Palette.tertiary)
                             }
                             .contentShape(Rectangle())
                         }
@@ -1542,7 +1542,7 @@ struct MainWindowView: View {
                     else if shownSession?.sourceFile == nil {
                         // An imported file has no "other side": its lines carry no label.
                         if me { MeTag() } else {
-                            Text("对方").font(.system(size: 11, weight: .semibold)).foregroundStyle(Palette.secondary)
+                            Text("对方").font(.ui( 11, weight: .semibold)).foregroundStyle(Palette.secondary)
                         }
                     }
                     if place, label, !me { PlaceTag(line: l) }
@@ -1551,14 +1551,14 @@ struct MainWindowView: View {
                     LineEditor(line: l, session: s.id, fixes: model.fixes, start: editingStart) { editingLine = nil }
                 } else if view != "dst" {
                     Text(TranscriptParagraphs.joinFixed([l]))
-                        .font(.system(size: view == "src" ? 15 : 13))
+                        .font(.ui( view == "src" ? 15 : 13))
                         .foregroundStyle(view == "src" ? Palette.ink : Palette.tertiary)
                         .lineSpacing(2)
                         .textSelection(.enabled)
                 }
                 if view != "src" {
                     Text(l.dst ?? L("翻译中…"))
-                        .font(.system(size: 15)).lineSpacing(3)
+                        .font(.ui( 15)).lineSpacing(3)
                         .foregroundStyle(l.dst == nil ? Palette.tertiary : Palette.ink)
                         .textSelection(.enabled)
                 }
@@ -1568,7 +1568,7 @@ struct MainWindowView: View {
                         let fixed = (l.fixes ?? []).filter(\.applied).map { (l.id, $0) }
                         if !fixed.isEmpty { FixedWords(fixes: fixed) { id, f in model.fixes.revert(f, lineID: id, in: s.id) } }
                         Button(L("改这句…")) { editingStart = l.shown; editingLine = l.id }
-                            .buttonStyle(.plain).font(.system(size: 11, weight: .medium)).foregroundStyle(Palette.link)
+                            .buttonStyle(.plain).font(.ui( 11, weight: .medium)).foregroundStyle(Palette.link)
                     }
                     .padding(.top, 2)
                 }
@@ -1637,10 +1637,10 @@ struct SessionNotesView: View {
                 } else {
                     VStack(alignment: .leading, spacing: 10) {
                         Text(generating ? L("正在整理纪要…") : live ? L("纪要会在会议进行中自动生成") : L("这场会议还没有纪要"))
-                            .font(.system(size: 15, weight: .bold))
+                            .font(.ui( 15, weight: .bold))
                         Text(ling.hasKey ? L("用 \(ling.provider.name) 整理出总结、议题、结论和人名，约半分钟。")
                                          : L("前往 设置 › AI 服务 填入 Ling 的 API key 后即可生成。"))
-                            .font(.system(size: 13)).foregroundStyle(Palette.secondary)
+                            .font(.ui( 13)).foregroundStyle(Palette.secondary)
                         if !live {
                             HStack(spacing: 8) {
                                 if ling.hasKey {
@@ -1702,7 +1702,7 @@ struct LanguageNotice: View {
             notInstalledCard
         } else if !model.languageAsk.isEmpty {
             VStack(alignment: .leading, spacing: 8) {
-                Text("听不出是哪种语言，你来选一下").font(.system(size: 13, weight: .semibold)).foregroundStyle(Palette.ink)
+                Text("听不出是哪种语言，你来选一下").font(.ui( 13, weight: .semibold)).foregroundStyle(Palette.ink)
                 HStack(spacing: 8) {
                     ForEach(model.languageAsk, id: \.locale) { lang in
                         SoftButton(lang.name) { model.pickLanguage(lang) }
@@ -1712,7 +1712,7 @@ struct LanguageNotice: View {
                             Button(lang.name) { model.pickLanguage(lang) }
                         }
                     } label: {
-                        Text("更多…").font(.system(size: 12, weight: .semibold))
+                        Text("更多…").font(.ui( 12, weight: .semibold))
                     }
                     .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize()
                     .foregroundStyle(Palette.secondary)
@@ -1731,13 +1731,13 @@ struct LanguageNotice: View {
             HStack(spacing: 10) {
                 ProgressView().progressViewStyle(.linear).controlSize(.small).tint(Palette.tertiary).frame(width: 64)
                 Text(fetch.background ? L("正在补装 \(fetch.name) 语音模型") : L("正在下载 \(fetch.name) 语音模型"))
-                    .font(.system(size: 13, weight: .semibold)).foregroundStyle(Palette.ink)
+                    .font(.ui( 13, weight: .semibold)).foregroundStyle(Palette.ink)
             }
             TimelineView(.periodic(from: .now, by: 1)) { context in
                 let waited = Self.minutes(context.date.timeIntervalSince(fetch.since))
                 Text(offer.map { L("已等 \(waited)，比平常慢。可以先交给 \($0) 听：声音会发给 \($0)，整句出字、慢 2–3 秒") }
                      ?? (fetch.background ? L("约 140 MB · 已等 \(waited) · 装好后自动判断语言") : L("约 140 MB · 已等 \(waited)")))
-                    .font(.system(size: 12)).foregroundStyle(Palette.secondary).fixedSize(horizontal: false, vertical: true)
+                    .font(.ui( 12)).foregroundStyle(Palette.secondary).fixedSize(horizontal: false, vertical: true)
             }
             if let offer {
                 HStack(spacing: 8) {
@@ -1755,10 +1755,10 @@ struct LanguageNotice: View {
                 if model.modelFetch != nil {
                     ProgressView().progressViewStyle(.linear).controlSize(.small).tint(Palette.tertiary).frame(width: 64)
                 }
-                Text("\(service) 先听着").font(.system(size: 13, weight: .semibold)).foregroundStyle(Palette.ink)
+                Text("\(service) 先听着").font(.ui( 13, weight: .semibold)).foregroundStyle(Palette.ink)
             }
             Text(model.modelFetch.map { L("整句出字、慢 2–3 秒，\($0.name) 模型装好后自动换回本机") } ?? L("整句出字、慢 2–3 秒，声音会发给 \(service)"))
-                .font(.system(size: 12)).foregroundStyle(Palette.secondary).fixedSize(horizontal: false, vertical: true)
+                .font(.ui( 12)).foregroundStyle(Palette.secondary).fixedSize(horizontal: false, vertical: true)
             SoftButton(model.modelFetch != nil ? L("换回等待") : L("换回本机")) { model.stopCloud() }
         }
     }
@@ -1766,10 +1766,10 @@ struct LanguageNotice: View {
     private func cloudBackCard(_ service: String) -> some View {
         VStack(alignment: .leading, spacing: 3) {
             HStack(spacing: 6) {
-                Image(systemName: "checkmark.circle").font(.system(size: 13, weight: .semibold)).foregroundStyle(Palette.ink)
-                Text("语音模型装好了，已换回本机").font(.system(size: 13, weight: .semibold)).foregroundStyle(Palette.ink)
+                Image(systemName: "checkmark.circle").font(.ui( 13, weight: .semibold)).foregroundStyle(Palette.ink)
+                Text("语音模型装好了，已换回本机").font(.ui( 13, weight: .semibold)).foregroundStyle(Palette.ink)
             }
-            Text("字幕重新边说边出，声音不再发给 \(service)").font(.system(size: 12)).foregroundStyle(Palette.secondary)
+            Text("字幕重新边说边出，声音不再发给 \(service)").font(.ui( 12)).foregroundStyle(Palette.secondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
     }
@@ -1788,8 +1788,8 @@ struct LanguageNotice: View {
             : names.count == 2 ? L("听着不像 \(names[0]) 或 \(names[1])") : L("听着不像已装的语言")
         return VStack(alignment: .leading, spacing: 8) {
             VStack(alignment: .leading, spacing: 3) {
-                Text(title).font(.system(size: 13, weight: .semibold)).foregroundStyle(Palette.ink)
-                Text("选了就下载它的语音模型，开头这段也会补上").font(.system(size: 12)).foregroundStyle(Palette.secondary)
+                Text(title).font(.ui( 13, weight: .semibold)).foregroundStyle(Palette.ink)
+                Text("选了就下载它的语音模型，开头这段也会补上").font(.ui( 12)).foregroundStyle(Palette.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
             HStack(spacing: 8) {
@@ -1801,16 +1801,16 @@ struct LanguageNotice: View {
                         Button(lang.name) { model.pickLanguage(lang) }
                     }
                 } label: {
-                    Text("更多…").font(.system(size: 12, weight: .semibold))
+                    Text("更多…").font(.ui( 12, weight: .semibold))
                 }
                 .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize()
                 .foregroundStyle(Palette.secondary)
             }
             HStack(spacing: 10) {
-                Text("其实是：").font(.system(size: 12)).foregroundStyle(Palette.secondary)
+                Text("其实是：").font(.ui( 12)).foregroundStyle(Palette.secondary)
                 ForEach(installed, id: \.locale) { lang in
                     Button(lang.name) { model.pickLanguage(lang) }
-                        .buttonStyle(.plain).font(.system(size: 12, weight: .semibold))
+                        .buttonStyle(.plain).font(.ui( 12, weight: .semibold))
                         .foregroundStyle(Palette.secondary).underline()
                 }
             }
@@ -1824,9 +1824,9 @@ struct LanguageNotice: View {
         let installed = model.settings.sourceMode == .auto ? model.candidates.filter { $0 != p.lang } : []
         return VStack(alignment: .leading, spacing: 8) {
             VStack(alignment: .leading, spacing: 3) {
-                Text("没能下载 \(p.lang.name) 语音模型").font(.system(size: 13, weight: .semibold)).foregroundStyle(Palette.ink)
+                Text("没能下载 \(p.lang.name) 语音模型").font(.ui( 13, weight: .semibold)).foregroundStyle(Palette.ink)
                 if let reason = reason(p.cause) {
-                    Text(reason).font(.system(size: 12)).foregroundStyle(Palette.secondary).fixedSize(horizontal: false, vertical: true)
+                    Text(reason).font(.ui( 12)).foregroundStyle(Palette.secondary).fixedSize(horizontal: false, vertical: true)
                 }
             }
             HStack(spacing: 8) {
@@ -1843,7 +1843,7 @@ struct LanguageNotice: View {
             }
             if !installed.isEmpty {
                 HStack(spacing: 8) {
-                    Text("先用已装的：").font(.system(size: 12)).foregroundStyle(Palette.secondary)
+                    Text("先用已装的：").font(.ui( 12)).foregroundStyle(Palette.secondary)
                     ForEach(installed, id: \.locale) { lang in
                         SoftButton(lang.name) { model.pickLanguage(lang) }
                     }
