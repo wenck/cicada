@@ -233,6 +233,7 @@ final class AppSettings: ObservableObject {
             let hearBase = aiCustomHearBase.isEmpty ? base : AIProvider.customBase(aiCustomHearBase)
             let backupModel = aiCustomHearBackupModel.trimmingCharacters(in: .whitespaces)
             let backupBase = aiCustomHearBackupBase.isEmpty ? base : AIProvider.customBase(aiCustomHearBackupBase)
+            let backupKey = AIKey.read("custom-hear-backup")
             let recognizes = aiCustomRecognize && !hear.isEmpty
             let textModel = aiModels["custom"] ?? ""
             let notesModel = (aiModels["custom.notes"] ?? "").trimmingCharacters(in: .whitespaces)
@@ -243,6 +244,7 @@ final class AppSettings: ObservableObject {
                             hearModel: recognizes ? hear : nil, hearBase: recognizes ? hearBase : nil,
                             hearBackupModel: recognizes && !backupModel.isEmpty ? backupModel : nil,
                             hearBackupBase: backupBase,
+                            hearBackupKey: backupKey,
                             notesModel: notesModel.isEmpty || notesModel == textModel ? nil : notesModel,
                             notesBase: notesBase == base ? nil : notesBase, notesOwnService: aiCustomNotesOwn,
                             notesBadAddress: !notesAddress.isEmpty && notesBase == nil)

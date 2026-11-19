@@ -2836,17 +2836,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, UNUs
     func showSettingsWindow() {
         popover.performClose(nil)
         if settingsWindow == nil {
-            let w = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 720, height: 600),
-                             styleMask: [.titled, .closable, .fullSizeContentView],
+            let w = NSWindow(contentRect: NSRect(x: 0, y: 0, width: UIStyle.pt(760), height: UIStyle.pt(620)),
+                             styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
                              backing: .buffered, defer: false)
             w.title = L("设置")
             w.titlebarAppearsTransparent = true
             w.titleVisibility = .hidden
             w.isReleasedWhenClosed = false
+            w.minSize = NSSize(width: UIStyle.pt(680), height: UIStyle.pt(480))
             w.delegate = self
             w.contentView = NSHostingView(rootView: SettingsView(model: model, settings: model.settings, installer: model.installer))
-            w.center()
             w.setFrameAutosaveName("LiveSubsSettings")
+            if !w.setFrameUsingName("LiveSubsSettings") {
+                w.center()
+            }
             settingsWindow = w
         }
         model.refreshOutputs()
@@ -2884,6 +2887,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, UNUs
 
     func windowWillClose(_ notification: Notification) {
         let w = notification.object as? NSWindow
+        if let w, !w.frameAutosaveName.isEmpty {
+            w.saveFrame(usingName: w.frameAutosaveName)
+        }
         updateActivationPolicy(closing: w)
         if w == onboardingWindow { model.notesWindow.avoid(nil) }
         if w == onboardingWindow, !model.relaunching {
@@ -2893,6 +2899,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, UNUs
             if mainWindow?.isVisible != true {
                 DispatchQueue.main.async { [weak self] in MainActor.assumeIsolated { self?.showMainWindow() } }
             }
+        }
+    }
+
+    func windowDidResize(_ notification: Notification) {
+        if let w = notification.object as? NSWindow, !w.frameAutosaveName.isEmpty {
+            w.saveFrame(usingName: w.frameAutosaveName)
+        }
+    }
+
+    func windowDidMove(_ notification: Notification) {
+        if let w = notification.object as? NSWindow, !w.frameAutosaveName.isEmpty {
+            w.saveFrame(usingName: w.frameAutosaveName)
         }
     }
 

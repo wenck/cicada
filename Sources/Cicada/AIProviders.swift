@@ -200,6 +200,7 @@ struct AIConfig: Equatable {
     /// A backup recognition model and address when the primary model is rate-limited (429) or fails.
     var hearBackupModel: String? = nil
     var hearBackupBase: URL? = nil
+    var hearBackupKey: String? = nil
     /// A custom service's notes (实时纪要, 说话人, files' corrections): another model, and with
     /// 另一个服务 another server with its own key. nil: the same as translation.
     var notesModel: String? = nil

@@ -420,9 +420,10 @@ struct SettingsView: View {
     var body: some View {
         HStack(spacing: 0) {
             sidebar.frame(width: UIStyle.pt(190))
-            ScrollView { page }
+            ScrollView { page.frame(maxWidth: .infinity, alignment: .leading) }
         }
-        .frame(width: UIStyle.pt(720), height: UIStyle.pt(600))
+        .frame(minWidth: UIStyle.pt(680), minHeight: UIStyle.pt(480))
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(red: 0.965, green: 0.969, blue: 0.976))
     }
 
@@ -814,6 +815,7 @@ struct AdvancedSettingsView: View {
     @ObservedObject var settings: AppSettings
     @State private var backupModelDraft = ""
     @State private var backupBaseDraft = ""
+    @State private var backupKeyDraft = ""
     @State private var promptDraft = ""
 
     private var pauseOptions: [(id: String, title: String)] {
@@ -891,7 +893,7 @@ struct AdvancedSettingsView: View {
                                 settings.aiCustomHearBackupModel = v.trimmingCharacters(in: .whitespaces)
                             }
                     }
-                    SettingsRow(title: L("备用接口地址"), detail: L("选填；留空则默认使用与主服务相同的 API Base 地址"), divider: false) {
+                    SettingsRow(title: L("备用接口地址"), detail: L("选填；留空则默认使用与主服务相同的 API Base 地址")) {
                         TextField(L("选填 (默认同主服务)"), text: $backupBaseDraft)
                             .textFieldStyle(.plain)
                             .font(.ui(13))
@@ -902,6 +904,22 @@ struct AdvancedSettingsView: View {
                                 settings.aiCustomHearBackupBase = v.trimmingCharacters(in: .whitespaces)
                             }
                     }
+                    SettingsRow(title: L("备用接口密钥 (API Key)"), detail: L("选填；留空则默认使用与主服务相同的 API Key"), divider: false) {
+                        SecureField(L("选填 (默认同主服务 key)"), text: $backupKeyDraft)
+                            .textFieldStyle(.plain)
+                            .font(.ui(13))
+                            .frame(width: UIStyle.pt(200))
+                            .padding(.horizontal, 8).padding(.vertical, 4)
+                            .background(RoundedRectangle(cornerRadius: 6).fill(Palette.fill))
+                            .onChange(of: backupKeyDraft) { _, v in
+                                let key = v.trimmingCharacters(in: .whitespaces)
+                                if key.isEmpty {
+                                    AIKey.remove("custom-hear-backup")
+                                } else {
+                                    AIKey.save(key, "custom-hear-backup")
+                                }
+                            }
+                    }
                 }
                 if !settings.aiCustomHearBackupModel.isEmpty {
                     HStack {
@@ -909,8 +927,10 @@ struct AdvancedSettingsView: View {
                         Button(L("清空备用模型")) {
                             backupModelDraft = ""
                             backupBaseDraft = ""
+                            backupKeyDraft = ""
                             settings.aiCustomHearBackupModel = ""
                             settings.aiCustomHearBackupBase = ""
+                            AIKey.remove("custom-hear-backup")
                         }
                         .buttonStyle(.plain)
                         .font(.ui(12))
@@ -956,6 +976,7 @@ struct AdvancedSettingsView: View {
         .onAppear {
             backupModelDraft = settings.aiCustomHearBackupModel
             backupBaseDraft = settings.aiCustomHearBackupBase
+            backupKeyDraft = AIKey.read("custom-hear-backup") ?? ""
             promptDraft = settings.notesCustomPrompt
         }
     }
