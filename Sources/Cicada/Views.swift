@@ -243,7 +243,7 @@ struct MenuPanelView: View {
 
             Divider()
 
-            speakSection
+            // 同声传译已移除
             if let strip = systemMicStrip {
                 HStack(spacing: 10) {
                     VStack(alignment: .leading, spacing: 2) {

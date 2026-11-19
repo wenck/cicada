@@ -452,7 +452,7 @@ struct SettingsView: View {
 
     private var sidebar: some View {
         VStack(alignment: .leading, spacing: 2) {
-            ForEach(SettingsSection.allCases.filter { $0 != .diagnostics || settings.diagnostics }) { s in
+            ForEach(SettingsSection.allCases.filter { ($0 != .diagnostics || settings.diagnostics) && $0 != .speak }) { s in
                 let on = s == model.settingsSection
                 if s == .diagnostics {
                     Rectangle().fill(Palette.line).frame(height: 1).padding(.horizontal, 10).padding(.vertical, 6)

@@ -33,7 +33,7 @@ struct LanguageSettings: View {
                              value: settings.notesLanguage) { model.setNotesLanguage($0) }
                 }
             }
-            group(L("同声传译")) {
+            if false { group(L("同声传译")) {
                 SettingsRow(title: L("我说"), detail: settings.speakEnabled ? nil : L("同声传译还没打开")) {
                     PillMenu(value: settings.speakFromLang.name, options: sourceLanguages.map { ($0.locale, $0.name) }) {
                         settings.speakFrom = $0
@@ -47,7 +47,7 @@ struct LanguageSettings: View {
                         model.objectWillChange.send()
                     }
                 }
-            }
+            } }
         }
     }
 
