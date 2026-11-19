@@ -66,6 +66,11 @@
 	<string>To save each meeting's notes and transcript into the folder you chose.</string>
 	<key>NSNetworkVolumesUsageDescription</key>
 	<string>To save each meeting's notes and transcript into the folder you chose.</string>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<true/>
+	</dict>
 	<key>NSHighResolutionCapable</key>
 	<true/>
 	<key>NSHumanReadableCopyright</key>
