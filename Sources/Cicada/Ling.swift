@@ -395,7 +395,12 @@ final class LingClient: ObservableObject {
             // A model the service no longer lists fails here, before a meeting finds out. One a real
             // sentence just went through exists whatever the list says (an alias, a name typed by hand).
             if let listed, !c.textModel.isEmpty, r[.text] == .untested {
-                if !listed.contains(c.textModel) { r.fail(.text, .noModel) } else { r[.text] = .ok(seconds: nil) }
+                // A gateway may list a model without the vendor prefix the request needs
+                // (`mimo-v2.6-flash` listed, `xiaomi/mimo-v2.6-flash` sent): the name after the
+                // slash is the same model, so a listed bare name counts.
+                let bare = c.textModel.split(separator: "/").last.map(String.init) ?? c.textModel
+                if !listed.contains(c.textModel), !listed.contains(bare) { r.fail(.text, .noModel) }
+                else { r[.text] = .ok(seconds: nil) }
             }
         }
         await finishCheck(r, c, generation)
