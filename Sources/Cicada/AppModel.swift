@@ -762,6 +762,9 @@ final class AppModel: ObservableObject {
         heldRoom = []
         liveMain = ("", "", "", .distantPast)
         liveRoom = ("", "", "", .distantPast)
+        listen.clearDisplay()
+        roomListen.clearDisplay()
+        overlay.setSubtitle(source: "", translation: "", previous: "")
         // The caption under the notes would otherwise show the last meeting's line until someone speaks.
         liveSource = ""
         lastFinishedLine = ""
@@ -817,6 +820,9 @@ final class AppModel: ObservableObject {
             folderExport.ended(ended)
         }
         overlay.hide()
+        listen.clearDisplay()
+        roomListen.clearDisplay()
+        overlay.setSubtitle(source: "", translation: "", previous: "")
         lastFinishedLine = ""
         previousFinishedLine = ""
         refresh()
@@ -1466,6 +1472,38 @@ final class AppModel: ObservableObject {
         speakerEdit(id) { store.setVoiceName(id, voice: voice, name) }
         let after = store.session(id).map { SpeakerLabels.label(n, SpeakerLabels.names($0)) } ?? before
         if after != before { speakerUndo?.text = L("\(before) 已改成 \(after)") } else { speakerUndo = nil }
+        if let clean = name?.trimmingCharacters(in: .whitespacesAndNewlines), !clean.isEmpty {
+            autoEnrollSpeaker(session: id, voice: voice, name: clean)
+        }
+    }
+
+    private func autoEnrollSpeaker(session id: String, voice: Int, name: String) {
+        guard let s = store.session(id), let audio = audioURL(for: s) else { return }
+        Task { [weak self] in
+            guard let self else { return }
+            do {
+                let result = try await SpeakerEnrollment.build(session: s, voice: voice, audioURL: audio)
+                let all = self.profiles.all()
+                let match = all.first { $0.name.trimmingCharacters(in: .whitespacesAndNewlines) == name }
+                let profile: SpeakerProfile?
+                if let match, self.profiles.updateEmbedding(id: match.id, embedding: result.embedding) {
+                    profile = self.profiles.snapshot().first { $0.id == match.id }
+                    debugLog("voice profiles: merged embedding into existing profile '\(name)'")
+                } else {
+                    profile = self.profiles.remember(name: name, embedding: result.embedding)
+                    debugLog("voice profiles: created new profile '\(name)'")
+                }
+                guard let profile else { return }
+                self.store.setVoiceProfile(id, voice: voice, ref: VoiceProfileRef(id: profile.id, name: profile.name, similarity: 1))
+                self.profiles.markSeen(id: profile.id)
+                if id == self.store.liveID, let full = self.profiles.snapshot().first(where: { $0.id == profile.id }) {
+                    self.speakers.bind(voice: voice, profile: full)
+                }
+                self.speakerProfiles = self.profiles.all()
+            } catch {
+                debugLog("voice profiles: auto-enroll skipped: \(error)")
+            }
+        }
     }
 
     /// A click on 对方 / 说话人 in the transcript: ask for a name without making the user find

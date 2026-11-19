@@ -1231,16 +1231,14 @@ final class ListenEngine {
                 self.cloud?.failures += 1
                 // The service is down or the key stopped working: listening shouldn't go quiet with it.
                 if (self.cloud?.failures ?? 0) >= 3 {
-                    if self.serverHears, !Recognition.cloudOnly {
-                        // The user's own service is down: this Mac recognizes the rest of the meeting.
-                        debugLog("cloud: own service failed 3 times, back to this Mac for this meeting")
-                        self.serverFellBack = true
-                        if self.cloud?.replaced.lang == nil { self.cloud?.replaced = (self.activeLang, false) }
+                    if self.serverHears {
+                        // 自定义云端服务重试，不强行降级回未安装离线模型的本机
+                        self.setStatus(L("\(self.cloudService ?? "AI") 正在重试…"))
+                    } else if !Recognition.cloudOnly {
                         self.stopCloud()
-                        self.setStatus(L("\(self.cloudService ?? "AI") 连不上 · 字幕改用本机识别"))
-                    } else if !Recognition.cloudOnly { self.stopCloud() }
-                    // Nothing to go back to on an Intel Mac: say why it's quiet, and keep trying.
-                    else { self.setStatus(CloudHearing.trouble(error, service: self.cloudService ?? "AI")) }
+                    } else {
+                        self.setStatus(CloudHearing.trouble(error, service: self.cloudService ?? "AI"))
+                    }
                 }
                 return nil
             }

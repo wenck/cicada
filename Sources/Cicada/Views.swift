@@ -847,6 +847,7 @@ struct MainWindowView: View {
     @State private var editingStart = ""
     @State private var hoveredLine: String?
     @State private var wordClick = WordClick()
+    @State private var liveFollowing = true
 
     /// Wide enough for the notes and the bilingual transcript side by side.
     private var sideBySide: Bool { showQuotes && wideEnough }
@@ -1418,7 +1419,8 @@ struct MainWindowView: View {
     }
 
     private func transcript(_ s: Session) -> some View {
-        ScrollViewReader { proxy in
+        let precomputedNames = SpeakerLabels.names(s)
+        return ScrollViewReader { proxy in
             ScrollView {
                 // The header outside the lazy stack, so it is never dropped and always reports where it is.
                 VStack(alignment: .leading, spacing: 0) {
@@ -1443,14 +1445,14 @@ struct MainWindowView: View {
                                 current: l.id == playingLine)
                             .contextMenu {
                                 Button(L("改这句…")) { editingStart = l.shown; editingLine = l.id }
-                                if !speakers.isEmpty, l.speaker == "them" { assignMenu(s, l, voices) }
+                                if !speakers.isEmpty, l.speaker == "them" { assignMenu(s, l, voices, names: precomputedNames) }
                             }
                             .id(l.id)
                     }
                 }
                 }
-                .environment(\.speakerNames, SpeakerLabels.names(s))
-                .frame(maxWidth: 680)
+                .environment(\.speakerNames, precomputedNames)
+                .frame(maxWidth: .infinity)
                 .padding(.horizontal, 40).padding(.vertical, 36)
                 .frame(maxWidth: .infinity)
             }
@@ -1459,11 +1461,33 @@ struct MainWindowView: View {
                 if pinned { pinnedBar(s) { withAnimation { proxy.scrollTo(PinnedHeader.top, anchor: .top) } } }
             }
             .animation(.easeOut(duration: 0.15), value: pinned)
-            .onUserScroll(ownSince: { player.ownScroll }) { if player.sessionID == s.id { player.userScrolled() } }
+            .onUserScroll(ownSince: { player.ownScroll }) {
+                if player.sessionID == s.id { player.userScrolled() }
+                if s.id == store.liveID { liveFollowing = false }
+            }
             .overlay(alignment: .bottom) { FixToast(fixes: model.fixes).padding(.bottom, 18) }
             .overlay(alignment: .bottom) {
-                // Scrolled away from what is playing: one way back.
-                if player.sessionID == s.id, !player.following, let id = player.lineID(in: s),
+                if s.id == store.liveID, !liveFollowing {
+                    Button {
+                        liveFollowing = true
+                        if let last = s.lines.last {
+                            withAnimation { proxy.scrollTo(last.id, anchor: .bottom) }
+                        }
+                    } label: {
+                        HStack(spacing: 8) {
+                            BreathingDot(size: 8)
+                            Text(L("回到此刻")).font(.ui( 14, weight: .bold))
+                            Image(systemName: "arrow.down").font(.ui( 11, weight: .bold))
+                        }
+                        .foregroundStyle(.white).padding(.horizontal, 20).frame(height: 38)
+                        .background(Capsule().fill(Palette.accent))
+                        .shadow(color: Palette.accent.opacity(0.35), radius: 10, y: 4)
+                        .contentShape(Capsule())
+                    }
+                    .buttonStyle(.plain).linkPointer()
+                    .padding(.bottom, 16)
+                    .transition(.opacity.combined(with: .scale(scale: 0.9)))
+                } else if player.sessionID == s.id, !player.following, let id = player.lineID(in: s),
                    let l = s.lines.first(where: { $0.id == id }) {
                     Button { player.follow() } label: {
                         HStack(spacing: 6) {
@@ -1482,8 +1506,9 @@ struct MainWindowView: View {
                 }
             }
             .animation(.easeOut(duration: 0.2), value: player.following)
+            .animation(.easeOut(duration: 0.2), value: liveFollowing)
             .onChange(of: s.lines.count) { _, _ in
-                if s.id == store.liveID, let last = s.lines.last {
+                if s.id == store.liveID, liveFollowing, let last = s.lines.last {
                     withAnimation { proxy.scrollTo(last.id, anchor: .bottom) }
                 }
             }
@@ -1521,13 +1546,13 @@ struct MainWindowView: View {
                             .font(.ui( 12, weight: current || hovered ? .semibold : .regular).monospacedDigit())
                     }
                     .foregroundStyle(current || hovered ? Palette.accent : Palette.link)
-                    .frame(width: 52, alignment: .leading).padding(.top, 1).contentShape(Rectangle())
+                    .frame(width: 64, alignment: .leading).padding(.top, 1).contentShape(Rectangle())
                 }
                 .buttonStyle(.plain).help(L("从这里播放"))
             } else {
                 Text(TranscriptExport.clock(l.t))
                     .font(.ui( 12).monospacedDigit()).foregroundStyle(Palette.tertiary)
-                    .frame(width: 52, alignment: .leading).padding(.top, 1)
+                    .frame(width: 64, alignment: .leading).padding(.top, 1)
             }
             VStack(alignment: .leading, spacing: 5) {
                 HStack(spacing: 6) {
@@ -1619,11 +1644,11 @@ struct MainWindowView: View {
 extension MainWindowView {
     /// "这句是谁说的": the people on show; the line takes that voice.
     @ViewBuilder
-    func assignMenu(_ s: Session, _ l: TranscriptLine, _ voices: [Int: Int]) -> some View {
-        let names = SpeakerLabels.names(s)
+    func assignMenu(_ s: Session, _ l: TranscriptLine, _ voices: [Int: Int], names: [Int: String]? = nil) -> some View {
+        let speakerNames = names ?? SpeakerLabels.names(s)
         Section("这句是谁说的") {
             ForEach(voices.sorted { $0.value < $1.value }, id: \.key) { v, n in
-                Button(SpeakerLabels.label(n, names) + (l.voice == v ? " ✓" : "")) {
+                Button(SpeakerLabels.label(n, speakerNames) + (l.voice == v ? " ✓" : "")) {
                     model.assignLines(session: s.id, [l.id], to: v)
                 }
             }
@@ -1719,9 +1744,9 @@ struct LanguageNotice: View {
     @ObservedObject var model: AppModel
 
     var body: some View {
-        if let problem = model.modelProblem, !model.languageAsk.isEmpty || model.modelBlocked {
+        if !model.settings.aiCustomRecognize, let problem = model.modelProblem, !model.languageAsk.isEmpty || model.modelBlocked {
             problemCard(problem)
-        } else if model.languageNotInstalled {
+        } else if !model.settings.aiCustomRecognize && model.languageNotInstalled {
             notInstalledCard
         } else if !model.languageAsk.isEmpty {
             VStack(alignment: .leading, spacing: 8) {

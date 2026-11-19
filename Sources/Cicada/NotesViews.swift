@@ -1439,7 +1439,7 @@ struct NotesListeningView: View {
         VStack(alignment: .leading, spacing: 22) {
             HStack(spacing: 12) {
                 SoundBars()
-                Text("有人开口后，约半分钟出第一版").font(.ui( 13)).foregroundStyle(Palette.ink)
+                Text("正在收听…").font(.ui( 13)).foregroundStyle(Palette.ink)
                 Spacer(minLength: 0)
                 if heard > 0 {
                     Text("已听到 \(heard) 句").font(.ui( 12)).foregroundStyle(Palette.tertiary).fixedSize()
