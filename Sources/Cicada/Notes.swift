@@ -112,6 +112,9 @@ struct NoteTerm: Codable, Equatable, Identifiable {
 /// odd reply never replaces good notes. UI-free; the notes window observes it.
 @MainActor
 final class NotesEngine: ObservableObject {
+    /// Custom prompt instruction / domain background injected by user.
+    static var customPrompt: String = ""
+
     enum State: Equatable {
         case idle
         case updating
@@ -539,6 +542,13 @@ final class NotesEngine: ObservableObject {
         Write the notes in \(language). Return JSON only.
 
         """
+        if !NotesEngine.customPrompt.isEmpty {
+            p += """
+            Special Domain Context & User Instructions:
+            \(NotesEngine.customPrompt)
+
+            """
+        }
         if !final {
             if frozen > 0 {
                 p += "Earlier topics (settled: kept as they are, do not return them):\n"
@@ -653,8 +663,14 @@ final class NotesEngine: ObservableObject {
         You keep notes for a meeting that has just ended. It was long, so each part was noted on its own; below are those notes, in time order (JSON; evidence ids are transcript lines, L1 the first). Merge them into the notes for the whole meeting.
         Write the notes in \(language). Return JSON only.
 
-
         """
+        if !NotesEngine.customPrompt.isEmpty {
+            p += """
+            Special Domain Context & User Instructions:
+            \(NotesEngine.customPrompt)
+
+            """
+        }
         for (i, part) in parts.enumerated() { p += "Part \(i + 1) of \(parts.count):\n\(part)\n\n" }
         if let first = lines.first?.t, let last = lines.last?.t {
             p += "This meeting ran \(clock(last - first)). Return \"topics\": []: the parts' topics are kept as they are. Name and summarise the whole meeting, every part of it; keep each conclusion, to-do and term once, with the evidence ids it had (joined when you merge two).\n\n"

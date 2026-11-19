@@ -3,7 +3,7 @@ import Carbon.HIToolbox
 import SwiftUI
 
 enum SettingsSection: String, CaseIterable, Identifiable {
-    case overlay, language, words, speak, records, ai, diagnostics
+    case overlay, language, words, speak, records, ai, advanced, diagnostics
     var id: String { rawValue }
     var title: String {
         switch self {
@@ -13,6 +13,7 @@ enum SettingsSection: String, CaseIterable, Identifiable {
         case .speak: L("同声传译")
         case .records: L("通用")
         case .ai: L("AI 服务")
+        case .advanced: L("高级")
         case .diagnostics: L("诊断")
         }
     }
@@ -24,6 +25,7 @@ enum SettingsSection: String, CaseIterable, Identifiable {
         case .speak: "mic"
         case .records: "gearshape"
         case .ai: "key"
+        case .advanced: "slider.horizontal.3"
         case .diagnostics: "waveform.path.ecg"
         }
     }
@@ -443,6 +445,7 @@ struct SettingsView: View {
             case .words: WordListSettings(model: model, settings: settings, vocabulary: model.vocabulary, ling: model.ling)
             case .records: records
             case .ai: AISettingsView(model: model, ling: model.ling, settings: settings)
+            case .advanced: AdvancedSettingsView(settings: settings)
             case .diagnostics: DiagnosticsView(diagnostics: model.diagnostics, service: settings.aiConfig)
             }
         }
@@ -801,6 +804,159 @@ struct SettingsView: View {
         }
         .sheet(isPresented: $model.speakerLibraryShown) {
             SpeakerLibraryView(model: model)
+        }
+    }
+}
+
+// MARK: - Advanced settings
+
+struct AdvancedSettingsView: View {
+    @ObservedObject var settings: AppSettings
+    @State private var backupModelDraft = ""
+    @State private var backupBaseDraft = ""
+    @State private var promptDraft = ""
+
+    private var pauseOptions: [(id: String, title: String)] {
+        [
+            ("0.6", L("0.6 秒 (默认)")),
+            ("1.2", L("1.2 秒")),
+            ("1.8", L("1.8 秒 (推荐)")),
+            ("2.5", L("2.5 秒")),
+        ]
+    }
+
+    private var maxLenOptions: [(id: String, title: String)] {
+        [
+            ("8.0", L("8 秒 (默认)")),
+            ("12.0", L("12 秒 (推荐)")),
+            ("16.0", L("16 秒")),
+            ("20.0", L("20 秒")),
+        ]
+    }
+
+    private var throttleOptions: [(id: String, title: String)] {
+        [
+            ("0.0", L("不限 (默认)")),
+            ("6.0", L("10 RPM (6秒)")),
+            ("4.0", L("15 RPM (4秒)")),
+            ("3.0", L("20 RPM (3秒)")),
+        ]
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            // Card 1: 录音与切句间隔
+            VStack(alignment: .leading, spacing: 8) {
+                Text(L("录音切句与频次控制")).font(.ui(14, weight: .bold)).foregroundStyle(Palette.ink)
+                SettingsCard {
+                    SettingsRow(title: L("停顿切句时间"), detail: L("语音停顿达到此时长即截断发送；调大可合并整句，减少请求次数")) {
+                        Segments(options: pauseOptions, value: String(settings.asrPause)) { val in
+                            if let d = Double(val) { settings.asrPause = d }
+                        }
+                    }
+                    SettingsRow(title: L("单句最长录音"), detail: L("连续说话时切片的最大上限时长")) {
+                        Segments(options: maxLenOptions, value: String(settings.asrMaxLength)) { val in
+                            if let d = Double(val) { settings.asrMaxLength = d }
+                        }
+                    }
+                    SettingsRow(title: L("请求频次保护 (RPM)"), detail: L("平滑转录请求间隔，防止短时间内高频发送导致 429 限流报错"), divider: false) {
+                        Segments(options: throttleOptions, value: String(settings.asrMinInterval)) { val in
+                            if let d = Double(val) { settings.asrMinInterval = d }
+                        }
+                    }
+                }
+                HStack {
+                    Spacer()
+                    Button(L("恢复默认录音参数")) {
+                        settings.resetAsrTiming()
+                    }
+                    .buttonStyle(.plain)
+                    .font(.ui(12))
+                    .foregroundStyle(Palette.accentInk)
+                }
+            }
+
+            // Card 2: 备用转录模型
+            VStack(alignment: .leading, spacing: 8) {
+                Text(L("备用转录模型 (Failover)")).font(.ui(14, weight: .bold)).foregroundStyle(Palette.ink)
+                SettingsCard {
+                    SettingsRow(title: L("备用模型名称"), detail: L("当主转录模型遭遇 429 限流或服务故障时，自动无缝重试该模型")) {
+                        TextField(L("如 whisper-large-v3"), text: $backupModelDraft)
+                            .textFieldStyle(.plain)
+                            .font(.ui(13))
+                            .frame(width: UIStyle.pt(200))
+                            .padding(.horizontal, 8).padding(.vertical, 4)
+                            .background(RoundedRectangle(cornerRadius: 6).fill(Palette.fill))
+                            .onChange(of: backupModelDraft) { _, v in
+                                settings.aiCustomHearBackupModel = v.trimmingCharacters(in: .whitespaces)
+                            }
+                    }
+                    SettingsRow(title: L("备用接口地址"), detail: L("选填；留空则默认使用与主服务相同的 API Base 地址"), divider: false) {
+                        TextField(L("选填 (默认同主服务)"), text: $backupBaseDraft)
+                            .textFieldStyle(.plain)
+                            .font(.ui(13))
+                            .frame(width: UIStyle.pt(200))
+                            .padding(.horizontal, 8).padding(.vertical, 4)
+                            .background(RoundedRectangle(cornerRadius: 6).fill(Palette.fill))
+                            .onChange(of: backupBaseDraft) { _, v in
+                                settings.aiCustomHearBackupBase = v.trimmingCharacters(in: .whitespaces)
+                            }
+                    }
+                }
+                if !settings.aiCustomHearBackupModel.isEmpty {
+                    HStack {
+                        Spacer()
+                        Button(L("清空备用模型")) {
+                            backupModelDraft = ""
+                            backupBaseDraft = ""
+                            settings.aiCustomHearBackupModel = ""
+                            settings.aiCustomHearBackupBase = ""
+                        }
+                        .buttonStyle(.plain)
+                        .font(.ui(12))
+                        .foregroundStyle(Palette.accentInk)
+                    }
+                }
+            }
+
+            // Card 3: 会议纪要提示词
+            VStack(alignment: .leading, spacing: 8) {
+                Text(L("会议纪要自定义指令 (Prompt)")).font(.ui(14, weight: .bold)).foregroundStyle(Palette.ink)
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(L("在此设定您的团队业务背景、关注核心或纪要风格（如强调 SRE 故障定位、变更记录等）。AI 生成纪要时将优先遵循此指令。"))
+                        .font(.ui(11))
+                        .foregroundStyle(Palette.tertiary)
+
+                    TextEditor(text: $promptDraft)
+                        .font(.ui(12))
+                        .frame(minHeight: UIStyle.pt(90), maxHeight: UIStyle.pt(160))
+                        .padding(8)
+                        .background(RoundedRectangle(cornerRadius: 8).fill(Color.white))
+                        .overlay(RoundedRectangle(cornerRadius: 8).stroke(Palette.line, lineWidth: 1))
+                        .onChange(of: promptDraft) { _, v in
+                            settings.notesCustomPrompt = v
+                        }
+
+                    HStack {
+                        Text(L("留空则使用官方默认纪要提示词")).font(.ui(11)).foregroundStyle(Palette.secondary)
+                        Spacer()
+                        Button(L("恢复默认指令")) {
+                            promptDraft = ""
+                            settings.resetCustomPrompt()
+                        }
+                        .buttonStyle(.plain)
+                        .font(.ui(12))
+                        .foregroundStyle(Palette.accentInk)
+                    }
+                }
+                .padding(14)
+                .background(RoundedRectangle(cornerRadius: 12).fill(Palette.ground))
+            }
+        }
+        .onAppear {
+            backupModelDraft = settings.aiCustomHearBackupModel
+            backupBaseDraft = settings.aiCustomHearBackupBase
+            promptDraft = settings.notesCustomPrompt
         }
     }
 }

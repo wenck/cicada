@@ -891,11 +891,31 @@ final class LingClient: ObservableObject {
         guard let key else { throw Failure.noKey }
         let c = config()
         guard let base = c.hearBase, let model = c.hearModel else { throw Failure.noKey }
+        do {
+            return try await executeTranscribe(wav, language: language, base: base, model: model, key: key, timeout: timeout)
+        } catch let failure as Failure {
+            let isRetryable: Bool
+            switch failure {
+            case .rateLimited, .timeout, .network: isRetryable = true
+            case .http(let code) where code >= 500: isRetryable = true
+            default: isRetryable = false
+            }
+            if isRetryable, let backupModel = c.hearBackupModel, !backupModel.isEmpty {
+                let backupBase = c.hearBackupBase ?? base
+                debugLog("ling: primary model \(model) failed (\(Self.name(failure))); trying backup model \(backupModel)")
+                return try await executeTranscribe(wav, language: language, base: backupBase, model: backupModel, key: key, timeout: timeout)
+            }
+            throw failure
+        }
+    }
+
+    private func executeTranscribe(_ wav: Data, language: String?, base: URL, model: String,
+                                   key: String, timeout: TimeInterval) async throws -> (text: String, language: String?) {
         let asked = Date()
         await acquire(.translate)
         let queued = Date().timeIntervalSince(asked)
         let started = Date()
-        let call = CallLabel(provider: c.provider.id.rawValue, model: model, role: "heard-them")
+        let call = CallLabel(provider: config().provider.id.rawValue, model: model, role: "heard-them")
 
         let endpointKey = "\(base.absoluteString)|\(model)"
         if chatShapeEndpoints.contains(endpointKey) {

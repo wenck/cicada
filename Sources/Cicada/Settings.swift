@@ -170,6 +170,51 @@ final class AppSettings: ObservableObject {
     @Published var aiCustomOnly: Bool {
         didSet { save() }
     }
+    /// Backup custom speech recognition model and address when the primary model fails or is rate-limited (429).
+    @Published var aiCustomHearBackupModel: String {
+        didSet { save() }
+    }
+    @Published var aiCustomHearBackupBase: String {
+        didSet { save() }
+    }
+    /// ASR audio segmentation pause threshold (seconds). Default 0.6.
+    @Published var asrPause: Double {
+        didSet {
+            CloudHearing.configuredPause = asrPause
+            save()
+        }
+    }
+    /// ASR audio segmentation max length (seconds). Default 8.0.
+    @Published var asrMaxLength: Double {
+        didSet {
+            CloudHearing.configuredMaxLength = asrMaxLength
+            save()
+        }
+    }
+    /// ASR min request interval / RPM rate-limiting throttle (seconds). 0: no limit; 6.0: 10 RPM.
+    @Published var asrMinInterval: Double {
+        didSet {
+            CloudHearing.configuredMinInterval = asrMinInterval
+            save()
+        }
+    }
+    /// Custom meeting notes prompt instructions / domain background.
+    @Published var notesCustomPrompt: String {
+        didSet {
+            NotesEngine.customPrompt = notesCustomPrompt
+            save()
+        }
+    }
+
+    func resetAsrTiming() {
+        asrPause = 0.6
+        asrMaxLength = 8.0
+        asrMinInterval = 0.0
+    }
+
+    func resetCustomPrompt() {
+        notesCustomPrompt = ""
+    }
 
     var provider: AIProvider { AIProvider.named(aiProvider) }
 
@@ -186,6 +231,8 @@ final class AppSettings: ObservableObject {
             let name = aiCustomVoice.trimmingCharacters(in: .whitespaces)
             let hear = aiCustomHearModel.trimmingCharacters(in: .whitespaces)
             let hearBase = aiCustomHearBase.isEmpty ? base : AIProvider.customBase(aiCustomHearBase)
+            let backupModel = aiCustomHearBackupModel.trimmingCharacters(in: .whitespaces)
+            let backupBase = aiCustomHearBackupBase.isEmpty ? base : AIProvider.customBase(aiCustomHearBackupBase)
             let recognizes = aiCustomRecognize && !hear.isEmpty
             let textModel = aiModels["custom"] ?? ""
             let notesModel = (aiModels["custom.notes"] ?? "").trimmingCharacters(in: .whitespaces)
@@ -194,6 +241,8 @@ final class AppSettings: ObservableObject {
             return AIConfig(provider: p, base: base, textModel: textModel, voiceModel: voice.isEmpty ? nil : voice,
                             voiceBase: voiceBase, customVoice: name.isEmpty ? nil : name,
                             hearModel: recognizes ? hear : nil, hearBase: recognizes ? hearBase : nil,
+                            hearBackupModel: recognizes && !backupModel.isEmpty ? backupModel : nil,
+                            hearBackupBase: backupBase,
                             notesModel: notesModel.isEmpty || notesModel == textModel ? nil : notesModel,
                             notesBase: notesBase == base ? nil : notesBase, notesOwnService: aiCustomNotesOwn,
                             notesBadAddress: !notesAddress.isEmpty && notesBase == nil)
@@ -330,6 +379,20 @@ final class AppSettings: ObservableObject {
         aiCustomOnly = defaults.bool(forKey: "aiCustomOnly")
         aiCustomNotesOwn = defaults.bool(forKey: "aiCustomNotesOwn")
         aiCustomNotesBase = defaults.string(forKey: "aiCustomNotesBase") ?? ""
+        aiCustomHearBackupModel = defaults.string(forKey: "aiCustomHearBackupModel") ?? ""
+        aiCustomHearBackupBase = defaults.string(forKey: "aiCustomHearBackupBase") ?? ""
+        let initialAsrPause = defaults.object(forKey: "asrPause") as? Double ?? 0.6
+        asrPause = initialAsrPause
+        CloudHearing.configuredPause = initialAsrPause
+        let initialAsrMax = defaults.object(forKey: "asrMaxLength") as? Double ?? 8.0
+        asrMaxLength = initialAsrMax
+        CloudHearing.configuredMaxLength = initialAsrMax
+        let initialAsrThrottle = defaults.object(forKey: "asrMinInterval") as? Double ?? 0.0
+        asrMinInterval = initialAsrThrottle
+        CloudHearing.configuredMinInterval = initialAsrThrottle
+        let initialNotesPrompt = defaults.string(forKey: "notesCustomPrompt") ?? ""
+        notesCustomPrompt = initialNotesPrompt
+        NotesEngine.customPrompt = initialNotesPrompt
         displayMode = defaults.string(forKey: "displayMode") ?? "notes"
         let initialUIScale = defaults.string(forKey: "uiScale") ?? "large"
         uiScale = initialUIScale
@@ -394,6 +457,12 @@ final class AppSettings: ObservableObject {
         defaults.set(aiCustomVoice, forKey: "aiCustomVoice")
         defaults.set(aiCustomHearModel, forKey: "aiCustomHearModel")
         defaults.set(aiCustomHearBase, forKey: "aiCustomHearBase")
+        defaults.set(aiCustomHearBackupModel, forKey: "aiCustomHearBackupModel")
+        defaults.set(aiCustomHearBackupBase, forKey: "aiCustomHearBackupBase")
+        defaults.set(asrPause, forKey: "asrPause")
+        defaults.set(asrMaxLength, forKey: "asrMaxLength")
+        defaults.set(asrMinInterval, forKey: "asrMinInterval")
+        defaults.set(notesCustomPrompt, forKey: "notesCustomPrompt")
         defaults.set(aiCustomRecognize, forKey: "aiCustomRecognize")
         defaults.set(aiCustomOnly, forKey: "aiCustomOnly")
         defaults.set(aiCustomNotesOwn, forKey: "aiCustomNotesOwn")
