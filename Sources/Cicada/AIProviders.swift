@@ -108,6 +108,16 @@ struct AIProvider: Identifiable, Equatable {
     static func isNearby(_ hostOrURL: String) -> Bool {
         let h = host(of: hostOrURL).lowercased()
         if isLocal(h) || h.hasSuffix(".local") { return true }
+        if isPrivateAddress(h) { return true }
+        // A name that resolves to a private address is a LAN service too: an internal gateway like
+        // `model.example.srv` is reached over plain http even though the name is not an IP.
+        if !h.contains(":") { return resolvesToPrivateAddress(h) }
+        return false
+    }
+
+    /// Private IPv4 (10/8, 172.16/12, 192.168/16), link-local, Tailscale's 100.64/10, and IPv6
+    /// unique and link-local addresses.
+    private static func isPrivateAddress(_ h: String) -> Bool {
         let parts = h.split(separator: ".").compactMap { Int($0) }
         if parts.count == 4, h.split(separator: ".").count == 4, parts.allSatisfy({ (0...255).contains($0) }) {
             switch (parts[0], parts[1]) {
@@ -119,6 +129,38 @@ struct AIProvider: Identifiable, Equatable {
         if h.contains(":") { return h.hasPrefix("fc") || h.hasPrefix("fd") || h.hasPrefix("fe80") }
         return false
     }
+
+    /// Whether `name` resolves to a private address. Cached: the settings screen asks on every
+    /// keystroke, and a DNS lookup per keystroke would stall it.
+    private static func resolvesToPrivateAddress(_ name: String) -> Bool {
+        let key = name.lowercased()
+        if let hit = nearbyNames.object(forKey: key as NSString) { return hit.boolValue }
+        var hints = addrinfo(ai_flags: 0, ai_family: AF_UNSPEC, ai_socktype: SOCK_STREAM,
+                             ai_protocol: 0, ai_addrlen: 0, ai_canonname: nil, ai_addr: nil, ai_next: nil)
+        var result: UnsafeMutablePointer<addrinfo>?
+        let status = getaddrinfo(key, nil, &hints, &result)
+        defer { if result != nil { freeaddrinfo(result) } }
+        var nearby = false
+        if status == 0, let first = result {
+            var node: UnsafeMutablePointer<addrinfo>? = first
+            while let current = node {
+                if let sa = current.pointee.ai_addr {
+                    var buffer = [CChar](repeating: 0, count: Int(NI_MAXHOST))
+                    if getnameinfo(sa, current.pointee.ai_addrlen, &buffer, socklen_t(buffer.count),
+                                   nil, 0, NI_NUMERICHOST) == 0 {
+                        let text = String(cString: buffer)
+                        if isPrivateAddress(text) { nearby = true; break }
+                    }
+                }
+                node = current.pointee.ai_next
+            }
+        }
+        nearbyNames.setObject(NSNumber(value: nearby), forKey: key as NSString)
+        return nearby
+    }
+
+    /// `isNearby`'s answers for names, so the settings screen does not look one up per keystroke.
+    private static let nearbyNames = NSCache<NSString, NSNumber>()
 
     private static func host(of hostOrURL: String) -> String {
         let s = hostOrURL.trimmingCharacters(in: .whitespaces)
