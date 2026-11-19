@@ -308,10 +308,29 @@ struct AICheck: Equatable {
             case .untested: "untested"
             }
             return "\(s.id.rawValue)=\(v)"
-        }.joined(separator: " ") + (proxy.map { " proxy=\($0)" } ?? "") + (localNetworkDenied ? " localNetwork=denied" : "") + (balance.map { " balance=\(String(format: "%.2f", $0))" } ?? "")
-            + (passive ? " passive" : "")
-            + (translate.map { " translate=\(String(format: "%.1f", $0.seconds))s\($0.thinks ? " thinks" : "")" } ?? "")
-            + (hear.map { " hear=\($0)" } ?? "")
-            + (notes.map { " notes=\($0)" } ?? "")
+        }.joined(separator: " ")
+        // Built in pieces: one long concatenation times out the type checker on Swift 6.
+        var out = steps.map { s -> String in
+            let v: String = switch s.state {
+            case .running: "running"
+            case .ok(let sec): sec.map { "ok(\(String(format: "%.1f", $0))s)" } ?? "ok"
+            case .busy: "busy"
+            case .fail(let r, let code): "fail(\(r.rawValue)\(code.map { " \($0)" } ?? ""))"
+            case .skipped: "skipped"
+            case .untested: "untested"
+            }
+            return "\(s.id.rawValue)=\(v)"
+        }.joined(separator: " ")
+        if let proxy { out += " proxy=\(proxy)" }
+        if localNetworkDenied { out += " localNetwork=denied" }
+        if let balance { out += " balance=\(String(format: "%.2f", balance))" }
+        if passive { out += " passive" }
+        if let translate {
+            out += " translate=\(String(format: "%.1f", translate.seconds))s"
+            if translate.thinks { out += " thinks" }
+        }
+        if let hear { out += " hear=\(hear)" }
+        if let notes { out += " notes=\(notes)" }
+        return out
     }
 }

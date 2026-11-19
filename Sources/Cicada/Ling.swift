@@ -881,6 +881,55 @@ final class LingClient: ObservableObject {
         let queued = Date().timeIntervalSince(asked)
         let started = Date()
         let call = CallLabel(provider: c.provider.id.rawValue, model: model, role: "heard-them")
+
+        // Standard `/audio/transcriptions` first (Qwen3-ASR, Whisper servers, Fun-ASR).
+        do {
+            let out = try await transcribeMultipart(wav, language: language, base: base, model: model,
+                                                    key: key, timeout: timeout)
+            report(call, .translate, at: started, queued: queued, outcome: "ok", chars: out.text.count)
+            return out
+        } catch let failure as Failure {
+            // A gateway that only speaks the chat shape (audio as `input_audio` in messages) answers
+            // 400/404/422 here: try that before giving up on the line.
+            guard Self.chatShapeWorthTrying(failure) else {
+                report(call, .translate, at: started, queued: queued, outcome: Self.name(failure))
+                if failure == .rateLimited { _ = rateLimited(1, retryAfter: lastRetryAfter, gate: gate()) }
+                throw failure
+            }
+            debugLog("ling: /audio/transcriptions refused (\(Self.name(failure))); trying the chat shape")
+        } catch {
+            report(call, .translate, at: started, queued: queued, outcome: "parse")
+            throw Failure.parse
+        }
+
+        do {
+            let out = try await transcribeChat(wav, language: language, base: base, model: model,
+                                               key: key, timeout: timeout)
+            report(call, .translate, at: started, queued: queued, outcome: "ok", chars: out.text.count)
+            return out
+        } catch let failure as Failure {
+            report(call, .translate, at: started, queued: queued, outcome: Self.name(failure))
+            if failure == .rateLimited { _ = rateLimited(1, retryAfter: lastRetryAfter, gate: gate()) }
+            throw failure
+        } catch {
+            report(call, .translate, at: started, queued: queued, outcome: "parse")
+            throw Failure.parse
+        }
+    }
+
+    /// Whether a failed `/audio/transcriptions` call is worth retrying as a chat call: the server
+    /// said it does not know that endpoint or that model, rather than being down or out of quota.
+    nonisolated static func chatShapeWorthTrying(_ failure: Failure) -> Bool {
+        switch failure {
+        case .http(let code): return code == 400 || code == 404 || code == 405 || code == 415 || code == 422
+        case .parse: return true
+        default: return false
+        }
+    }
+
+    /// The standard shape: multipart with the WAV as a file.
+    private func transcribeMultipart(_ wav: Data, language: String?, base: URL, model: String,
+                                     key: String, timeout: TimeInterval) async throws -> (text: String, language: String?) {
         var req = URLRequest(url: base.appendingPathComponent("audio/transcriptions"))
         req.httpMethod = "POST"
         req.timeoutInterval = timeout
@@ -889,21 +938,43 @@ final class LingClient: ObservableObject {
         var fields = [("model", model), ("temperature", "0")]
         if let language { fields.append(("language", String(language.prefix { $0 != "-" }))) }
         req.httpBody = Self.multipart(fields: fields, file: wav, boundary: boundary)
-        do {
-            let data = try await send(req, key: key, contentType: nil)
-            guard let root = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-                  let text = root["text"] as? String else { throw Failure.parse }
-            report(call, .translate, at: started, queued: queued, outcome: "ok", chars: text.count)
-            return (text.trimmingCharacters(in: .whitespacesAndNewlines), root["language"] as? String)
-        } catch let failure as Failure {
-            report(call, .translate, at: started, queued: queued, outcome: Self.name(failure))
-            // The server's limit is shared: the rest of the queue waits it out too.
-            if failure == .rateLimited { _ = rateLimited(1, retryAfter: lastRetryAfter, gate: gate()) }
-            throw failure
-        } catch {
-            report(call, .translate, at: started, queued: queued, outcome: "parse")
-            throw Failure.parse
+        let data = try await send(req, key: key, contentType: nil)
+        guard let root = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let text = root["text"] as? String else { throw Failure.parse }
+        return (text.trimmingCharacters(in: .whitespacesAndNewlines), root["language"] as? String)
+    }
+
+    /// The chat shape some gateways use instead: the WAV as a base64 `input_audio` part of a user
+    /// message, the transcript in `choices[0].message.content`. A model named `vendor/model` also
+    /// sends `X-Model-Provider-Id: vendor`, which such gateways need to route the request.
+    private func transcribeChat(_ wav: Data, language: String?, base: URL, model: String,
+                                key: String, timeout: TimeInterval) async throws -> (text: String, language: String?) {
+        var req = URLRequest(url: base.appendingPathComponent("chat/completions"))
+        req.httpMethod = "POST"
+        req.timeoutInterval = timeout
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        if let slash = model.firstIndex(of: "/"), slash != model.startIndex {
+            req.setValue(String(model[model.startIndex..<slash]), forHTTPHeaderField: "X-Model-Provider-Id")
         }
+        var body: [String: Any] = [
+            "model": model,
+            "messages": [[
+                "role": "user",
+                "content": [[
+                    "type": "input_audio",
+                    "input_audio": ["data": "data:audio/wav;base64," + wav.base64EncodedString()],
+                ]],
+            ]],
+            "max_tokens": 2000,
+        ]
+        if let language { body["asr_options"] = ["language": String(language.prefix { $0 != "-" })] }
+        req.httpBody = try JSONSerialization.data(withJSONObject: body)
+        let data = try await send(req, key: key, contentType: nil)
+        guard let root = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let choices = root["choices"] as? [[String: Any]],
+              let message = choices.first?["message"] as? [String: Any],
+              let text = message["content"] as? String else { throw Failure.parse }
+        return (text.trimmingCharacters(in: .whitespacesAndNewlines), language)
     }
 
     /// One second of silence through the speech model: does the address answer, and does the
