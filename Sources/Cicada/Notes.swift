@@ -185,12 +185,9 @@ final class NotesEngine: ObservableObject {
         fresh = []
         state = ling.hasKey ? .idle : .noKey
         lastAttempt = Date()
+        // 不再边开会边生成纪要：只在会议结束时一次性生成。
         timer?.invalidate()
-        let t = Timer(timeInterval: 5, repeats: true) { [weak self] _ in
-            MainActor.assumeIsolated { self?.tick() }
-        }
-        timer = t
-        RunLoop.main.add(t, forMode: .common)
+        timer = nil
     }
 
     /// The meeting ended: one last pass over the whole transcript.

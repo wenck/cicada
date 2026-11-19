@@ -502,7 +502,7 @@ final class AppModel: ObservableObject {
         // Listening starts by itself at launch: never with the microphone open. 会议室 is chosen
         // for the meeting at hand, not kept for the next login.
         if settings.hearsRoom { settings.listenSource = "system" }
-        start()
+        // 不自动开始听：启动就录会留下一堆空录音。用户点开始才听。
         if settings.speakEnabled { enableSpeaking(true) }
     }
 
