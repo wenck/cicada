@@ -38,8 +38,8 @@ final class AppModel: ObservableObject {
     private var recentMeetingSegs: [Int: (start: Double, end: Double)] = [:]
     private(set) var heldRoom: [(id: Int, seg: Segment, duration: Double, heard: EchoMatch.Heard)] = []
     /// What each engine shows as the line in progress, and when it last changed.
-    private var liveMain = (src: "", dst: "", at: Date.distantPast)
-    private var liveRoom = (src: "", dst: "", at: Date.distantPast)
+    private var liveMain = (src: "", dst: "", prev: "", at: Date.distantPast)
+    private var liveRoom = (src: "", dst: "", prev: "", at: Date.distantPast)
     lazy var speakTester = SpeakTester(speak: speak, ling: ling, settings: settings)
     /// Key released → the room heard the first sound, from the latest real press or sound test.
     @Published var lastSpeakLatency: Double? = UserDefaults.standard.object(forKey: "lastSpeakLatency") as? Double {
@@ -227,15 +227,15 @@ final class AppModel: ObservableObject {
             gate.playedShare(from: from.timeIntervalSinceReferenceDate, to: to.timeIntervalSinceReferenceDate)
         }
         roomListen.onStateChange = { [weak self] in self?.refresh() }
-        listen.onSubtitle = { [weak self] src, dst in
+        listen.onSubtitle = { [weak self] src, dst, prev in
             guard let self else { return }
             // Someone is speaking either way; only the wrong model's words aren't shown.
-            self.liveMain = (self.listen.hidesSource ? "" : src, dst, Date())
+            self.liveMain = (self.listen.hidesSource ? "" : src, dst, prev, Date())
             self.showLive(spoke: src)
         }
-        roomListen.onSubtitle = { [weak self] src, dst in
+        roomListen.onSubtitle = { [weak self] src, dst, prev in
             guard let self else { return }
-            self.liveRoom = (self.roomListen.hidesSource ? "" : src, dst, Date())
+            self.liveRoom = (self.roomListen.hidesSource ? "" : src, dst, prev, Date())
             self.showLive(spoke: src)
         }
         listen.onStatus = { [weak self] text in
@@ -760,8 +760,8 @@ final class AppModel: ObservableObject {
         fixes.meetingStarted()
         recentOnline = []
         heldRoom = []
-        liveMain = ("", "", .distantPast)
-        liveRoom = ("", "", .distantPast)
+        liveMain = ("", "", "", .distantPast)
+        liveRoom = ("", "", "", .distantPast)
         // The caption under the notes would otherwise show the last meeting's line until someone speaks.
         liveSource = ""
         lastFinishedLine = ""
@@ -900,8 +900,8 @@ final class AppModel: ObservableObject {
     /// original alone as the main line.
     func displayed(_ src: String, _ dst: String) -> (source: String, translation: String) {
         switch subtitles {
-        case "original": return ("", src)
-        case "translation": return dst.isEmpty ? (src, "") : ("", dst)
+        case "original": return (src, "")
+        case "translation": return ("", dst.isEmpty ? src : dst)
         default: return (src, dst)
         }
     }
@@ -1667,7 +1667,7 @@ final class AppModel: ObservableObject {
         let held = heldRoom
         heldRoom = []
         for h in held { recordRoom(h) }
-        liveRoom = ("", "", .distantPast)
+        liveRoom = ("", "", "", .distantPast)
         debugLog("hybrid: room side stopped")
     }
 
@@ -1788,15 +1788,15 @@ final class AppModel: ObservableObject {
     /// Mac take turns on the one caption.
     private func showLive(spoke src: String) {
         let room = !liveRoom.src.isEmpty && (liveMain.src.isEmpty || liveRoom.at > liveMain.at)
-        let (visible, dst) = room ? (liveRoom.src, liveRoom.dst) : (liveMain.src, liveMain.dst)
+        let (visible, dst, prev) = room ? (liveRoom.src, liveRoom.dst, liveRoom.prev) : (liveMain.src, liveMain.dst, liveMain.prev)
         liveSource = visible
         liveTranslation = dst
         if !src.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { heardSpeech(); heardWords() }
         guard settings.displayMode == "bar" else { return }
         overlay.clearStatus()
         let shown = displayed(visible, dst)
-        let prev = (shown.source == lastFinishedLine) ? previousFinishedLine : lastFinishedLine
-        overlay.setSubtitle(source: shown.source, translation: shown.translation, previous: prev)
+        let cleanPrev = (prev == shown.source) ? "" : prev
+        overlay.setSubtitle(source: shown.source, translation: shown.translation, previous: cleanPrev)
     }
 
     /// 一句说完了：它成为字幕条上方的"上一句"。

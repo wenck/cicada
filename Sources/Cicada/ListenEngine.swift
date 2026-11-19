@@ -35,7 +35,7 @@ final class ListenEngine {
     /// (yours, from 同声传译's 我说), so the room side always detects, starting with yours.
     private var sourceMode: SourceMode { role == .room ? .auto : settings.sourceMode }
     // Outputs
-    var onSubtitle: ((_ source: String, _ translation: String) -> Void)?
+    var onSubtitle: ((_ source: String, _ translation: String, _ previous: String) -> Void)?
     var onStatus: ((String) -> Void)?
     var onStateChange: (() -> Void)?
     /// A finished sentence; `secondsAgo` ≈ how long ago it started.
@@ -929,18 +929,29 @@ final class ListenEngine {
     private func renderSubtitles() {
         let draft = shownDraft
         guard !(segments.isEmpty && draft.isEmpty) else { return }
-        let srcJoin = joiner(for: activeLang?.code ?? "en")
         let last = segments.last.map { fixedText[$0.id] ?? $0.text } ?? ""
-        let source = [last, draft].filter { !$0.isEmpty }
-            .joined(separator: srcJoin.isEmpty ? " " : srcJoin)
+
+        let source: String
+        let previous: String
+        let translation: String
+
+        if draft.isEmpty {
+            source = last
+            previous = segments.count >= 2 ? (fixedText[segments[segments.count - 2].id] ?? segments[segments.count - 2].text) : ""
+            translation = segments.last?.translation ?? ""
+        } else {
+            source = draft
+            previous = last
+            translation = volatileTranslation
+        }
+
         if sourceMode == .auto, !recordable {
-            onSubtitle?(source, asksLanguage ? L("听不出是哪种语言，到菜单栏里选一下") : L("正在识别语言…"))
+            onSubtitle?(source, asksLanguage ? L("听不出是哪种语言，到菜单栏里选一下") : L("正在识别语言…"), "")
             return
         }
-        let tgtJoin = joiner(for: resolvedTarget)
-        var parts = segments.suffix(3).compactMap(\.translation)
-        if !volatileTranslation.isEmpty { parts.append(volatileTranslation) }
-        onSubtitle?(source, parts.joined(separator: tgtJoin.isEmpty ? "" : " "))
+
+        let cleanPrev = (previous == source) ? "" : previous
+        onSubtitle?(source, translation, cleanPrev)
     }
 
     // MARK: Language detection
@@ -1361,7 +1372,7 @@ final class ListenEngine {
         // A partial without a translation is fine while the AI service will translate the sentence.
         let coming = kind == .draft && translator?.ling.usable == true
         if out == nil, !coming, segments.allSatisfy({ $0.translation == nil }) && volatileTranslation.isEmpty {
-            onSubtitle?(shownDraft.isEmpty ? (segments.last?.text ?? "") : shownDraft, L("翻译暂不可用"))
+            onSubtitle?(shownDraft.isEmpty ? (segments.last?.text ?? "") : shownDraft, L("翻译暂不可用"), "")
         }
         return out
     }

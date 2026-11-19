@@ -532,9 +532,10 @@ final class OverlayView: NSView {
     func barHeight(fontSize fs: CGFloat) -> CGFloat {
         let pad = 14 * k(fs)
         var h = pad * 2
-        let srcText = isStatus ? "" : source
+        let srcText = isStatus ? "" : source.trimmingCharacters(in: .whitespacesAndNewlines)
         let transText = translation.trimmingCharacters(in: .whitespacesAndNewlines)
-        let showPrevious = !isStatus && !previous.isEmpty && previous != srcText && !srcText.hasPrefix(previous)
+        let prevText = previous.trimmingCharacters(in: .whitespacesAndNewlines)
+        let showPrevious = !isStatus && !prevText.isEmpty && prevText != srcText
         // 上一句（暗色，字号适中）
         if showPrevious {
             h += line(prevFont(fs)) + 4 * k(fs)
@@ -642,13 +643,14 @@ final class OverlayView: NSView {
             y -= h + 8 * k(fs)
         }
 
-        let srcText = isStatus ? "" : source
+        let srcText = isStatus ? "" : source.trimmingCharacters(in: .whitespacesAndNewlines)
         let transText = translation.trimmingCharacters(in: .whitespacesAndNewlines)
-        let showPrevious = !isStatus && !previous.isEmpty && previous != srcText && !srcText.hasPrefix(previous)
+        let prevText = previous.trimmingCharacters(in: .whitespacesAndNewlines)
+        let showPrevious = !isStatus && !prevText.isEmpty && prevText != srcText
 
         // 上一句：暗色，一行，在上面（字号接近当前句，靠左对齐）。
         if showPrevious {
-            draw(previous, font: prevFont(fs), color: NSColor.white.withAlphaComponent(0.42), maxLines: 1)
+            draw(prevText, font: prevFont(fs), color: NSColor.white.withAlphaComponent(0.42), maxLines: 1)
             y -= 4 * k(fs)
         }
         // 当前句：亮色高亮。
