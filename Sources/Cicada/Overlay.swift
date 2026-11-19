@@ -518,7 +518,11 @@ final class OverlayView: NSView {
     // MARK: Metrics
 
     private func k(_ fs: CGFloat) -> CGFloat { fs / 28 }
-    private func srcFont(_ fs: CGFloat) -> NSFont { .systemFont(ofSize: max(12, fs * 0.58), weight: .medium) }
+    private func prevFont(_ fs: CGFloat) -> NSFont { .systemFont(ofSize: max(13, fs * 0.85), weight: .medium) }
+    private func srcFont(_ fs: CGFloat) -> NSFont {
+        let hasTrans = !translation.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        return hasTrans ? .systemFont(ofSize: max(13, fs * 0.85), weight: .medium) : .systemFont(ofSize: fs, weight: .semibold)
+    }
     private func transFont(_ fs: CGFloat) -> NSFont { .systemFont(ofSize: fs, weight: .semibold) }
     private func speakFont(_ fs: CGFloat) -> NSFont { .systemFont(ofSize: max(14, fs * 0.78), weight: .semibold) }
     private func alertFont(_ fs: CGFloat) -> NSFont { .systemFont(ofSize: max(11, fs * 0.46), weight: .semibold) }
@@ -528,17 +532,18 @@ final class OverlayView: NSView {
     func barHeight(fontSize fs: CGFloat) -> CGFloat {
         let pad = 14 * k(fs)
         var h = pad * 2
-        // 上一句（暗色）
-        if !isStatus, !previous.isEmpty {
-            h += line(srcFont(fs)) + 4 * k(fs)
+        let srcText = isStatus ? "" : source
+        let transText = translation.trimmingCharacters(in: .whitespacesAndNewlines)
+        let showPrevious = !isStatus && !previous.isEmpty && previous != srcText && !srcText.hasPrefix(previous)
+        // 上一句（暗色，字号适中）
+        if showPrevious {
+            h += line(prevFont(fs)) + 4 * k(fs)
         }
         // 当前句（高亮原文）
-        let srcText = isStatus ? "" : source
         if !srcText.isEmpty {
-            h += line(srcFont(fs)) + 6 * k(fs)
+            h += line(srcFont(fs)) + (transText.isEmpty ? 0 : 6 * k(fs))
         }
         // 译文（仅在非空时占用高度，避免留出多余空白）
-        let transText = translation.trimmingCharacters(in: .whitespacesAndNewlines)
         if !transText.isEmpty {
             h += line(transFont(fs)) * CGFloat(transLines)
         }
@@ -546,7 +551,7 @@ final class OverlayView: NSView {
         if speaking != nil {
             h += 12 * k(fs) + line(srcFont(fs)) + line(speakFont(fs)) * 2
         }
-        return ceil(max(h, pad * 2 + line(srcFont(fs))))
+        return ceil(max(h, pad * 2 + line(transFont(fs))))
     }
 
     private var barRect: NSRect { bounds.insetBy(dx: OverlayController.margin, dy: OverlayController.margin) }
@@ -606,14 +611,14 @@ final class OverlayView: NSView {
         let inner = bar.insetBy(dx: 26 * k(fs), dy: pad)
         var y = inner.maxY
 
-        let center = NSMutableParagraphStyle()
-        center.alignment = .center
-        center.lineBreakMode = .byWordWrapping
+        let align = NSMutableParagraphStyle()
+        align.alignment = .left
+        align.lineBreakMode = .byWordWrapping
 
         func draw(_ text: String, font: NSFont, color: NSColor, maxLines: Int) {
             // 空文本不占高度：不翻译时只有原文，不留空行。
             guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
-            let attrs: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: color, .paragraphStyle: center]
+            let attrs: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: color, .paragraphStyle: align]
             let maxH = line(font) * CGFloat(maxLines)
             let fitted = fitTail(text, attrs: attrs, width: inner.width, maxHeight: maxH + 1)
             let h = min(maxH, height(of: fitted, attrs: attrs, width: inner.width))
@@ -637,16 +642,19 @@ final class OverlayView: NSView {
             y -= h + 8 * k(fs)
         }
 
-        // 上一句：暗色，一行，在上面。
-        if !isStatus, !previous.isEmpty {
-            draw(previous, font: srcFont(fs), color: NSColor.white.withAlphaComponent(0.38), maxLines: 1)
+        let srcText = isStatus ? "" : source
+        let transText = translation.trimmingCharacters(in: .whitespacesAndNewlines)
+        let showPrevious = !isStatus && !previous.isEmpty && previous != srcText && !srcText.hasPrefix(previous)
+
+        // 上一句：暗色，一行，在上面（字号接近当前句，靠左对齐）。
+        if showPrevious {
+            draw(previous, font: prevFont(fs), color: NSColor.white.withAlphaComponent(0.42), maxLines: 1)
             y -= 4 * k(fs)
         }
         // 当前句：亮色高亮。
-        let srcText = isStatus ? "" : source
         if !srcText.isEmpty {
             draw(srcText, font: srcFont(fs), color: NSColor.white.withAlphaComponent(0.95), maxLines: 1)
-            y -= 6 * k(fs)
+            if !transText.isEmpty { y -= 6 * k(fs) }
         }
         draw(translation, font: transFont(fs),
              color: isStatus ? NSColor.white.withAlphaComponent(0.7) : .white, maxLines: transLines)
@@ -691,11 +699,12 @@ final class OverlayView: NSView {
 
     /// How many lines the translation needs at the current width (1 or 2).
     func neededLines(barWidth: CGFloat) -> Int {
-        guard !translation.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return 1 }
+        let text = translation.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? source : translation
+        guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return 1 }
         let fs = fontSize
         let attrs: [NSAttributedString.Key: Any] = [.font: transFont(fs)]
         let w = barWidth - 2 * 26 * k(fs)
-        return height(of: translation, attrs: attrs, width: w) > line(transFont(fs)) * 1.3 ? 2 : 1
+        return height(of: text, attrs: attrs, width: w) > line(transFont(fs)) * 1.3 ? 2 : 1
     }
 
     private func height(of s: String, attrs: [NSAttributedString.Key: Any], width: CGFloat) -> CGFloat {

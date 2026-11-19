@@ -134,6 +134,7 @@ final class AppModel: ObservableObject {
     @Published var liveSource = ""
     /// 上一句（已说完的）：字幕条上方那行暗色的。
     private var lastFinishedLine = ""
+    private var previousFinishedLine = ""
     /// Lines whose words the record's own recognizer hasn't settled yet (the notes window says 校准中).
     @Published private(set) var settling: Set<String> = []
     /// Lines whose voiceprint is still being worked out: no voice yet is not "like no voice".
@@ -811,9 +812,13 @@ final class AppModel: ObservableObject {
         store.end(at: endedAt, heardSpeech: listen.heardSpeech)
         if settings.speakerVoices, let ended { speakerNamer.guess(ended, force: true) }
         notes.finish()
-        if let ended { folderExport.ended(ended) }
+        if let ended {
+            generateQuickTitle(ended)
+            folderExport.ended(ended)
+        }
         overlay.hide()
         lastFinishedLine = ""
+        previousFinishedLine = ""
         refresh()
         updates.notifyIfDue()  // held while the meeting was on
     }
@@ -834,6 +839,32 @@ final class AppModel: ObservableObject {
         end.keyEquivalent = ""
         keep.keyEquivalent = "\r"
         if alert.runModal() == .alertFirstButtonReturn { stop() }
+    }
+
+    /// 无论是否打开纪要页面，会议一结束即刻以高优先级独立异步生成会议标题（耗时通常小于1秒）。
+    func generateQuickTitle(_ id: String) {
+        guard let session = store.session(id), !session.lines.isEmpty, ling.hasKey else { return }
+        if let existing = session.notes?.title, !existing.isEmpty { return }
+        let sampleLines = session.lines.prefix(25).map { ($0.speaker == "you" ? "我: " : "对方: ") + $0.src }.joined(separator: "\n")
+        let prompt = """
+        请根据以下会议开头的对话内容，为这场会议总结一个简练、准确的中文标题（12字以内，切中主题，不要带引号、书名号、日期或“会议”二字）：
+        \(sampleLines)
+        """
+        Task {
+            do {
+                let reply = try await ling.chat(content: prompt, instruction: "只输出标题文本，不要包含任何多余文字或标点符号。",
+                                                priority: .translate, json: false, maxTokens: 50, timeout: 15)
+                let title = reply.trimmingCharacters(in: CharacterSet(charactersIn: "\"“”「」《》 \n\r\t"))
+                if !title.isEmpty {
+                    await MainActor.run {
+                        self.store.setNotesTitle(id, title: title)
+                        self.refresh()
+                    }
+                }
+            } catch {
+                debugLog("quick title failed: \(error)")
+            }
+        }
     }
 
     /// The bottom-left 诊断 switch in settings: shows or hides the 诊断 tab.
@@ -1764,14 +1795,18 @@ final class AppModel: ObservableObject {
         guard settings.displayMode == "bar" else { return }
         overlay.clearStatus()
         let shown = displayed(visible, dst)
-        overlay.setSubtitle(source: shown.source, translation: shown.translation, previous: lastFinishedLine)
+        let prev = (shown.source == lastFinishedLine) ? previousFinishedLine : lastFinishedLine
+        overlay.setSubtitle(source: shown.source, translation: shown.translation, previous: prev)
     }
 
     /// 一句说完了：它成为字幕条上方的"上一句"。
     private func rememberFinished(_ text: String) {
         let t = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !t.isEmpty else { return }
-        lastFinishedLine = t
+        if t != lastFinishedLine {
+            previousFinishedLine = lastFinishedLine
+            lastFinishedLine = t
+        }
     }
 
     private func recordHeard(_ seg: Segment, duration: Double) {

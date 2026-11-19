@@ -158,7 +158,8 @@ struct MenuPanelView: View {
     }
 
     private var targetOptions: [(id: String, title: String)] {
-        [("system", L("跟随系统（\(settings.systemTargetDescription())）"))] + targetLanguages.map { ($0.code, $0.name) }
+        [("off", L("关闭翻译（只看原文）")),
+         ("system", L("跟随系统（\(settings.systemTargetDescription())）"))] + targetLanguages.map { ($0.code, $0.name) }
     }
 
     private var heardValue: (String, String?) {
@@ -231,11 +232,16 @@ struct MenuPanelView: View {
                     model.sourceSelection = $0
                 }
                 ChoiceRow(label: L("翻译成"),
-                          value: targetName(model.listen.resolvedTarget),
+                          value: model.subtitles == "original" ? L("关闭翻译") : targetName(model.listen.resolvedTarget),
                           // "Follow system" leaves no room for the language name in the panel.
-                          badge: settings.target == "system" ? (uiIsChinese ? L("跟随系统") : L("系统")) : nil,
+                          badge: model.subtitles == "original" ? L("只看原文") : (settings.target == "system" ? (uiIsChinese ? L("跟随系统") : L("系统")) : nil),
                           compact: true, options: targetOptions) {
-                    model.targetSelection = $0
+                    if $0 == "off" {
+                        model.setSubtitles("original")
+                    } else {
+                        if model.subtitles == "original" { model.setSubtitles("both") }
+                        model.targetSelection = $0
+                    }
                 }
             }
 
@@ -822,7 +828,7 @@ struct MainWindowView: View {
     @State private var dropping = false
     @State private var selection: String?
     @State private var query = ""
-    @State private var view = "both"
+    @State private var view = "src"
     @State private var tab = "notes"
     @State private var jumpTo: Double?
     /// A topic's time picked in the notes, for the bilingual column beside them.
@@ -1188,7 +1194,28 @@ struct MainWindowView: View {
         let active = activeTab(s)
         return HStack(alignment: .center, spacing: 22) {
             if active == "transcript" {
-                Segments(options: [("both", L("双语")), ("src", L("原文")), ("dst", L("译文"))], value: view) { view = $0 }
+                HStack(spacing: 8) {
+                    Button {
+                        withAnimation(.easeOut(duration: 0.15)) {
+                            view = (view == "both") ? "src" : "both"
+                        }
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: view == "both" ? "checkmark.circle.fill" : "circle")
+                                .font(.ui(11))
+                            Text("双语对照").font(.ui(13))
+                        }
+                        .padding(.horizontal, 10).padding(.vertical, 4)
+                        .background(RoundedRectangle(cornerRadius: 6).fill(view == "both" ? Palette.accent.opacity(0.12) : Palette.fill))
+                        .foregroundStyle(view == "both" ? Palette.accent : Palette.secondary)
+                    }
+                    .buttonStyle(.plain)
+                    .help(view == "both" ? L("切回仅看原文") : L("显示原文与译文双语对照"))
+
+                    if view != "both" {
+                        Segments(options: [("src", L("原文")), ("dst", L("译文"))], value: view) { view = $0 }
+                    }
+                }
             } else if wideEnough, !s.lines.isEmpty {
                 Button { withAnimation(.easeOut(duration: 0.2)) { showQuotes.toggle() } } label: {
                     HStack(spacing: 5) {
@@ -1625,7 +1652,7 @@ struct SessionNotesView: View {
     var body: some View {
         ScrollViewReader { proxy in
         ScrollView {
-            VStack(alignment: .leading, spacing: 40) {
+            LazyVStack(alignment: .leading, spacing: 40) {
                 header.id(PinnedHeader.top).pinnedHeader($pinned)
                 if let notes, !notes.isEmpty {
                     NotesContentView(notes: SpeakerLabels.named(notes, SpeakerLabels.names(session)), fresh: live ? engine.fresh : [], live: live, document: true,

@@ -565,7 +565,7 @@ struct NotesWindowView: View {
             }
             VStack(alignment: .leading, spacing: 6) {
                 Text("字幕").font(.ui( 12, weight: .semibold)).foregroundStyle(Palette.secondary)
-                Segments(options: [("both", L("双语")), ("translation", L("只看译文")), ("original", L("只看原文"))],
+                Segments(options: [("original", L("关闭翻译（只看原文）")), ("both", L("双语")), ("translation", L("只看译文"))],
                          value: model.subtitles, fill: true) { model.setSubtitles($0, meetingOnly: true) }
             }
             VStack(alignment: .leading, spacing: 6) {

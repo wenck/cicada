@@ -373,6 +373,17 @@ final class SessionStore: ObservableObject {
         id == liveID ? scheduleSave(id) : saveNow(id)
     }
 
+    /// Fast meeting title setting (before or alongside full notes generation).
+    func setNotesTitle(_ id: String, title: String) {
+        guard let i = index(id) else { return }
+        if sessions[i].notes == nil {
+            sessions[i].notes = MeetingNotes()
+        }
+        sessions[i].notes?.title = title
+        id == liveID ? scheduleSave(id) : saveNow(id)
+        objectWillChange.send()
+    }
+
     // MARK: Imported files
 
     /// A record for a recording or video, dated when it was recorded; filled by `FileImporter`.
