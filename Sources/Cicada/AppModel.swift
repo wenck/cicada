@@ -132,6 +132,8 @@ final class AppModel: ObservableObject {
     var listenReady: Bool { systemAudioOK && speechOK }
     @Published var micStatus: AVAuthorizationStatus = AVCaptureDevice.authorizationStatus(for: .audio)
     @Published var liveSource = ""
+    /// 上一句（已说完的）：字幕条上方那行暗色的。
+    private var lastFinishedLine = ""
     /// Lines whose words the record's own recognizer hasn't settled yet (the notes window says 校准中).
     @Published private(set) var settling: Set<String> = []
     /// Lines whose voiceprint is still being worked out: no voice yet is not "like no voice".
@@ -1764,10 +1766,18 @@ final class AppModel: ObservableObject {
         guard settings.displayMode == "bar" else { return }
         overlay.clearStatus()
         let shown = displayed(visible, dst)
-        overlay.setSubtitle(source: shown.source, translation: shown.translation)
+        overlay.setSubtitle(source: shown.source, translation: shown.translation, previous: lastFinishedLine)
+    }
+
+    /// 一句说完了：它成为字幕条上方的"上一句"。
+    private func rememberFinished(_ text: String) {
+        let t = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !t.isEmpty else { return }
+        lastFinishedLine = t
     }
 
     private func recordHeard(_ seg: Segment, duration: Double) {
+        rememberFinished(seg.text)
         guard let start = store.liveStart else { return }
         let t = max(0, Date().timeIntervalSince(start) - duration)
         // A line still waiting for its voice is overtaken: it stands on its own.

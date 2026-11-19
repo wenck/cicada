@@ -98,10 +98,11 @@ final class OverlayController {
 
     // MARK: Content
 
-    func setSubtitle(source: String, translation: String) {
+    func setSubtitle(source: String, translation: String, previous: String = "") {
         let changed = source != view.source || translation != view.translation
         view.source = source
         view.translation = translation
+        view.previous = previous
         let lines = view.neededLines(barWidth: width)
         if lines != view.transLines, view.dragMode == nil {
             view.transLines = lines
@@ -487,6 +488,8 @@ final class OverlayView: NSView {
     weak var controller: OverlayController?
     var source = ""
     var translation = ""
+    /// 上一句（已说完的那句）：显示在当前句上方，暗一些。
+    var previous = ""
     var isStatus = false
     var speaking: OverlayController.Speaking?
     var alert: String?
@@ -587,6 +590,8 @@ final class OverlayView: NSView {
         center.lineBreakMode = .byWordWrapping
 
         func draw(_ text: String, font: NSFont, color: NSColor, maxLines: Int) {
+            // 空文本不占高度：不翻译时只有原文，不留空行。
+            guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
             let attrs: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: color, .paragraphStyle: center]
             let maxH = line(font) * CGFloat(maxLines)
             let fitted = fitTail(text, attrs: attrs, width: inner.width, maxHeight: maxH + 1)
@@ -611,9 +616,17 @@ final class OverlayView: NSView {
             y -= h + 8 * k(fs)
         }
 
+        // 上一句：暗色，一行，在上面。
+        if !isStatus, !previous.isEmpty {
+            draw(previous, font: srcFont(fs), color: NSColor.white.withAlphaComponent(0.38), maxLines: 1)
+            y -= 4 * k(fs)
+        }
+        // 当前句：亮色高亮。
         let srcText = isStatus ? "" : source
-        draw(srcText, font: srcFont(fs), color: NSColor.white.withAlphaComponent(0.62), maxLines: 1)
-        y -= 6 * k(fs)
+        if !srcText.isEmpty {
+            draw(srcText, font: srcFont(fs), color: NSColor.white.withAlphaComponent(0.95), maxLines: 1)
+            y -= 6 * k(fs)
+        }
         draw(translation, font: transFont(fs),
              color: isStatus ? NSColor.white.withAlphaComponent(0.7) : .white, maxLines: transLines)
 
