@@ -30,6 +30,13 @@ enum AIKey {
         if let hit = cached[service] { return hit }
         var value = (try? String(contentsOf: file(service), encoding: .utf8))?.trimmingCharacters(in: .whitespacesAndNewlines)
         if value?.isEmpty ?? true { value = nil }
+        if value == nil, DevBuild.isDev {
+            let releaseFile = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+                .appendingPathComponent("LiveSubs").appendingPathComponent(service == "ling" ? "ling-api-key" : "ai-key-\(service)")
+            value = (try? String(contentsOf: releaseFile, encoding: .utf8))?.trimmingCharacters(in: .whitespacesAndNewlines)
+            if value?.isEmpty ?? true { value = nil }
+            if let value { _ = write(value, service) }
+        }
         if value == nil, service == "ling", folderOverride == nil, let old = LegacyKeychain.take() {
             // One last Keychain prompt, then the key lives in the file.
             value = old

@@ -25,9 +25,19 @@ final class Vocabulary: ObservableObject {
 
     init(url: URL?) {
         self.url = url
-        if let url, let data = try? Data(contentsOf: url),
-           let saved = try? JSONDecoder.vocabulary.decode([Term].self, from: data) {
-            terms = saved
+        if let url {
+            if let data = try? Data(contentsOf: url),
+               let saved = try? JSONDecoder.vocabulary.decode([Term].self, from: data) {
+                terms = saved
+            } else if DevBuild.isDev {
+                let releaseURL = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+                    .appendingPathComponent("LiveSubs").appendingPathComponent("vocabulary.json")
+                if let data = try? Data(contentsOf: releaseURL),
+                   let saved = try? JSONDecoder.vocabulary.decode([Term].self, from: data) {
+                    terms = saved
+                    try? data.write(to: url, options: .atomic)
+                }
+            }
         }
     }
 
