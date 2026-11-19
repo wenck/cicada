@@ -33,21 +33,6 @@ struct LanguageSettings: View {
                              value: settings.notesLanguage) { model.setNotesLanguage($0) }
                 }
             }
-            if false { group(L("同声传译")) {
-                SettingsRow(title: L("我说"), detail: settings.speakEnabled ? nil : L("同声传译还没打开")) {
-                    PillMenu(value: settings.speakFromLang.name, options: sourceLanguages.map { ($0.locale, $0.name) }) {
-                        settings.speakFrom = $0
-                        model.speakFromChanged()
-                    }
-                }
-                SettingsRow(title: L("对方听到"), detail: L("跟随对方时，对方说什么语言就翻成什么"), divider: false) {
-                    PillMenu(value: settings.speakTo == "room" ? L("跟随对方（\(targetName(model.speak.targetCode))）") : targetName(settings.speakTo),
-                             options: [("room", L("跟随对方"))] + targetLanguages.map { ($0.code, $0.name) }) {
-                        settings.speakTo = $0
-                        model.objectWillChange.send()
-                    }
-                }
-            } }
         }
     }
 

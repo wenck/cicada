@@ -81,6 +81,9 @@ final class OverlayController {
 
     init() {
         view = OverlayView(frame: NSRect(x: 0, y: 0, width: 900, height: 160))
+        view.wantsLayer = true
+        view.layerContentsRedrawPolicy = .onSetNeedsDisplay
+        view.canDrawConcurrently = true
         panel = OverlayPanel(contentRect: view.frame, styleMask: [.borderless, .nonactivatingPanel],
                              backing: .buffered, defer: false)
         panel.level = .screenSaver
@@ -99,13 +102,17 @@ final class OverlayController {
     // MARK: Content
 
     func setSubtitle(source: String, translation: String, previous: String = "") {
-        let changed = source != view.source || translation != view.translation
+        let changed = source != view.source || translation != view.translation || previous != view.previous
+        let oldHeight = view.barHeight(fontSize: fontSize)
         view.source = source
         view.translation = translation
         view.previous = previous
         let lines = view.neededLines(barWidth: width)
         if lines != view.transLines, view.dragMode == nil {
             view.transLines = lines
+        }
+        let newHeight = view.barHeight(fontSize: fontSize)
+        if oldHeight != newHeight, view.dragMode == nil {
             layout()
         }
         view.needsDisplay = true
@@ -520,12 +527,26 @@ final class OverlayView: NSView {
 
     func barHeight(fontSize fs: CGFloat) -> CGFloat {
         let pad = 14 * k(fs)
-        var h = pad * 2 + line(srcFont(fs)) + 6 * k(fs) + line(transFont(fs)) * CGFloat(transLines)
+        var h = pad * 2
+        // 上一句（暗色）
+        if !isStatus, !previous.isEmpty {
+            h += line(srcFont(fs)) + 4 * k(fs)
+        }
+        // 当前句（高亮原文）
+        let srcText = isStatus ? "" : source
+        if !srcText.isEmpty {
+            h += line(srcFont(fs)) + 6 * k(fs)
+        }
+        // 译文（仅在非空时占用高度，避免留出多余空白）
+        let transText = translation.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !transText.isEmpty {
+            h += line(transFont(fs)) * CGFloat(transLines)
+        }
         if alert != nil { h += alertHeight(fs) + 8 * k(fs) }
         if speaking != nil {
             h += 12 * k(fs) + line(srcFont(fs)) + line(speakFont(fs)) * 2
         }
-        return ceil(h)
+        return ceil(max(h, pad * 2 + line(srcFont(fs))))
     }
 
     private var barRect: NSRect { bounds.insetBy(dx: OverlayController.margin, dy: OverlayController.margin) }
@@ -670,6 +691,7 @@ final class OverlayView: NSView {
 
     /// How many lines the translation needs at the current width (1 or 2).
     func neededLines(barWidth: CGFloat) -> Int {
+        guard !translation.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return 1 }
         let fs = fontSize
         let attrs: [NSAttributedString.Key: Any] = [.font: transFont(fs)]
         let w = barWidth - 2 * 26 * k(fs)
@@ -684,13 +706,15 @@ final class OverlayView: NSView {
     /// Keeps the end of the text (newest words) and drops the beginning until it fits.
     private func fitTail(_ text: String, attrs: [NSAttributedString.Key: Any], width: CGFloat, maxHeight: CGFloat) -> String {
         if text.isEmpty || height(of: text, attrs: attrs, width: width) <= maxHeight { return text }
-        let chars = Array(text)
-        var lo = 0, hi = chars.count
+        let count = text.count
+        var lo = 0, hi = count
         while lo < hi {
             let mid = (lo + hi) / 2
-            if height(of: "…" + String(chars[mid...]), attrs: attrs, width: width) <= maxHeight { hi = mid } else { lo = mid + 1 }
+            let idx = text.index(text.startIndex, offsetBy: mid)
+            if height(of: "…" + String(text[idx...]), attrs: attrs, width: width) <= maxHeight { hi = mid } else { lo = mid + 1 }
         }
-        return "…" + String(chars[min(lo, chars.count)...])
+        let finalIdx = text.index(text.startIndex, offsetBy: min(lo, count))
+        return "…" + String(text[finalIdx...])
     }
 
     // MARK: Mouse

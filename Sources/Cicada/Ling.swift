@@ -236,6 +236,9 @@ final class LingClient: ObservableObject {
     var transcribes: Bool { usable && config().transcribes }
     /// Which servers refused `chat_template_kwargs` once (by host): leave it out there until settings change.
     private var noTemplateKwargs: Set<String> = []
+    /// Gateways confirmed to use the chat shape rather than `/audio/transcriptions`. Avoids an
+    /// expensive failed round-trip on every single sentence.
+    private var chatShapeEndpoints: Set<String> = []
     /// Notes' own server's text models from its `/models` (empty while notes share translation's address).
     @Published private(set) var notesCatalog: [String] = []
 
@@ -887,6 +890,23 @@ final class LingClient: ObservableObject {
         let started = Date()
         let call = CallLabel(provider: c.provider.id.rawValue, model: model, role: "heard-them")
 
+        let endpointKey = "\(base.absoluteString)|\(model)"
+        if chatShapeEndpoints.contains(endpointKey) {
+            do {
+                let out = try await transcribeChat(wav, language: language, base: base, model: model,
+                                                   key: key, timeout: timeout)
+                report(call, .translate, at: started, queued: queued, outcome: "ok", chars: out.text.count)
+                return out
+            } catch let failure as Failure {
+                report(call, .translate, at: started, queued: queued, outcome: Self.name(failure))
+                if failure == .rateLimited { _ = rateLimited(1, retryAfter: lastRetryAfter, gate: gate()) }
+                throw failure
+            } catch {
+                report(call, .translate, at: started, queued: queued, outcome: "parse")
+                throw Failure.parse
+            }
+        }
+
         // Standard `/audio/transcriptions` first (Qwen3-ASR, Whisper servers, Fun-ASR).
         do {
             let out = try await transcribeMultipart(wav, language: language, base: base, model: model,
@@ -910,6 +930,7 @@ final class LingClient: ObservableObject {
         do {
             let out = try await transcribeChat(wav, language: language, base: base, model: model,
                                                key: key, timeout: timeout)
+            chatShapeEndpoints.insert(endpointKey)
             report(call, .translate, at: started, queued: queued, outcome: "ok", chars: out.text.count)
             return out
         } catch let failure as Failure {
@@ -971,14 +992,24 @@ final class LingClient: ObservableObject {
                 ]],
             ]],
             "max_tokens": 2000,
+            "chat_template_kwargs": ["enable_thinking": false],
         ]
         if let language { body["asr_options"] = ["language": String(language.prefix { $0 != "-" })] }
         req.httpBody = try JSONSerialization.data(withJSONObject: body)
         let data = try await send(req, key: key, contentType: nil)
         guard let root = try JSONSerialization.jsonObject(with: data) as? [String: Any],
               let choices = root["choices"] as? [[String: Any]],
-              let message = choices.first?["message"] as? [String: Any],
-              let text = message["content"] as? String else { throw Failure.parse }
+              let message = choices.first?["message"] as? [String: Any] else { throw Failure.parse }
+        let text: String
+        if let direct = message["content"] as? String {
+            text = direct
+        } else if let parts = message["content"] as? [[String: Any]] {
+            text = parts.compactMap { $0["text"] as? String }.joined()
+        } else if let reasoning = message["reasoning_content"] as? String, !reasoning.isEmpty {
+            text = reasoning
+        } else {
+            throw Failure.parse
+        }
         return (text.trimmingCharacters(in: .whitespacesAndNewlines), language)
     }
 

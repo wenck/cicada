@@ -763,6 +763,7 @@ final class AppModel: ObservableObject {
         liveRoom = ("", "", .distantPast)
         // The caption under the notes would otherwise show the last meeting's line until someone speaks.
         liveSource = ""
+        lastFinishedLine = ""
         liveTranslation = ""
         speechHeard = false
         fakeGoneMics = []
@@ -812,6 +813,7 @@ final class AppModel: ObservableObject {
         notes.finish()
         if let ended { folderExport.ended(ended) }
         overlay.hide()
+        lastFinishedLine = ""
         refresh()
         updates.notifyIfDue()  // held while the meeting was on
     }
