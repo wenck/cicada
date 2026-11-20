@@ -50,6 +50,19 @@ extension View {
             self
         }
     }
+
+    /// Whether the scroll view is near the bottom edge.
+    @ViewBuilder func onNearBottom(threshold: CGFloat = 60, _ action: @escaping (Bool) -> Void) -> some View {
+        if #available(macOS 15, *) {
+            onScrollGeometryChange(for: Bool.self) { geo in
+                geo.contentSize.height - (geo.contentOffset.y + geo.containerSize.height) < threshold
+            } action: { _, isNear in
+                action(isNear)
+            }
+        } else {
+            self
+        }
+    }
 }
 
 extension View {

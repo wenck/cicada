@@ -848,6 +848,7 @@ struct MainWindowView: View {
     @State private var wordClick = WordClick()
     @State private var liveFollowing = true
     @State private var scrollTrigger = 0
+    @State private var transcriptOwnScroll = Date.distantPast
 
     /// Wide enough for the notes and the bilingual transcript side by side.
     private var sideBySide: Bool { showQuotes && wideEnough }
@@ -1170,14 +1171,21 @@ struct MainWindowView: View {
                 }
                 Spacer(minLength: 0)
                 if !liveFollowing {
-                    HStack(spacing: 5) {
-                        Text(L("回到此刻")).font(.ui( 12, weight: .bold))
-                        Image(systemName: "arrow.down").font(.ui( 11, weight: .bold))
+                    Button {
+                        liveFollowing = true
+                        scrollTrigger += 1
+                    } label: {
+                        HStack(spacing: 5) {
+                            Text(L("回到此刻")).font(.ui( 12, weight: .bold))
+                            Image(systemName: "arrow.down").font(.ui( 11, weight: .bold))
+                        }
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 12).padding(.vertical, 6)
+                        .background(Capsule().fill(Palette.accent))
+                        .shadow(color: Palette.accent.opacity(0.3), radius: 6, y: 2)
+                        .contentShape(Capsule())
                     }
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 12).padding(.vertical, 6)
-                    .background(Capsule().fill(Palette.accent))
-                    .shadow(color: Palette.accent.opacity(0.3), radius: 6, y: 2)
+                    .buttonStyle(.plain)
                 }
             }
             .padding(.horizontal, 24).padding(.vertical, 12)
@@ -1477,6 +1485,7 @@ struct MainWindowView: View {
                             }
                             .id(l.id)
                     }
+                    Color.clear.frame(height: 1).id("transcript-bottom")
                 }
                 }
                 .environment(\.speakerNames, precomputedNames)
@@ -1489,9 +1498,20 @@ struct MainWindowView: View {
                 if pinned { pinnedBar(s) { withAnimation { proxy.scrollTo(PinnedHeader.top, anchor: .top) } } }
             }
             .animation(.easeOut(duration: 0.15), value: pinned)
-            .onUserScroll(ownSince: { player.ownScroll }) {
+            .onUserScroll(ownSince: { max(player.ownScroll, transcriptOwnScroll) }) {
                 if player.sessionID == s.id { player.userScrolled() }
-                if s.id == store.liveID { liveFollowing = false }
+                if s.id == store.liveID && Date().timeIntervalSince(transcriptOwnScroll) > 0.4 {
+                    liveFollowing = false
+                }
+            }
+            .onNearBottom { isAtBottom in
+                if s.id == store.liveID && Date().timeIntervalSince(transcriptOwnScroll) > 0.4 {
+                    if isAtBottom {
+                        if !liveFollowing { liveFollowing = true }
+                    } else {
+                        if liveFollowing { liveFollowing = false }
+                    }
+                }
             }
             .overlay(alignment: .bottom) { FixToast(fixes: model.fixes).padding(.bottom, 18) }
             .overlay(alignment: .bottom) {
@@ -1516,13 +1536,13 @@ struct MainWindowView: View {
             .animation(.easeOut(duration: 0.2), value: player.following)
             .animation(.easeOut(duration: 0.2), value: liveFollowing)
             .onChange(of: scrollTrigger) { _, _ in
-                if s.id == store.liveID, let last = s.lines.last {
-                    withAnimation { proxy.scrollTo(last.id, anchor: .bottom) }
+                if s.id == store.liveID {
+                    scrollToBottom(proxy, session: s, animated: true)
                 }
             }
             .onChange(of: s.lines.count) { _, _ in
-                if s.id == store.liveID, liveFollowing, let last = s.lines.last {
-                    withAnimation { proxy.scrollTo(last.id, anchor: .bottom) }
+                if s.id == store.liveID, liveFollowing {
+                    scrollToBottom(proxy, session: s, animated: true)
                 }
             }
             // The transcript follows the recording while it plays, until scrolled by hand.
@@ -1539,8 +1559,31 @@ struct MainWindowView: View {
                 }
             }
             .onAppear {
-                if let t = jumpTo, let l = s.lines.first(where: { $0.t >= t - 1 }) { proxy.scrollTo(l.id, anchor: .top) }
+                if let t = jumpTo, let l = s.lines.first(where: { $0.t >= t - 1 }) {
+                    proxy.scrollTo(l.id, anchor: .top)
+                } else if s.id == store.liveID {
+                    scrollToBottom(proxy, session: s, animated: false)
+                }
                 jumpTo = nil
+            }
+        }
+    }
+
+    private func scrollToBottom(_ proxy: ScrollViewProxy, session: Session, animated: Bool = true) {
+        transcriptOwnScroll = Date()
+        proxy.scrollTo("transcript-bottom", anchor: .bottom)
+        if let last = session.lines.last {
+            proxy.scrollTo(last.id, anchor: .bottom)
+        }
+        if animated {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                self.transcriptOwnScroll = Date()
+                withAnimation(.easeOut(duration: 0.25)) {
+                    proxy.scrollTo("transcript-bottom", anchor: .bottom)
+                    if let last = session.lines.last {
+                        proxy.scrollTo(last.id, anchor: .bottom)
+                    }
+                }
             }
         }
     }
