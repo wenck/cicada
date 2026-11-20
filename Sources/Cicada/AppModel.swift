@@ -2766,6 +2766,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, UNUs
         installDeviceListener()
         Task { await model.launch() }
         model.updates.start()
+        LocalASRService.shared.startIfNeeded()
     }
 
     /// Files dropped on the Dock icon or opened with Cicada: imported as records.
@@ -2813,6 +2814,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, UNUs
     }
 
     func applicationWillTerminate(_ notification: Notification) {
+        LocalASRService.shared.stop()
         model.stop()
         // Other apps would be left on the virtual mic, hearing nothing.
         model.systemMic.release()

@@ -19,6 +19,7 @@ test-shots/
 # Compiled test helpers (build from tools/*.swift)
 tools/*
 !tools/*.swift
+!tools/*.py
 !tools/README.md
 !tools/macos-vm/
 !tools/audio-probe/
