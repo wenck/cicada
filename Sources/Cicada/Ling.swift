@@ -907,12 +907,14 @@ final class LingClient: ObservableObject {
             }
             if isRetryable, let backupModel = c.hearBackupModel, !backupModel.isEmpty {
                 let backupBase = c.hearBackupBase ?? base
-                // The primary key goes only to its own server; a keyless backup sends none.
-                let backupKey = c.hearBackupKey ?? (Self.server(backupBase) == Self.server(base) ? key : "")
+                // The provider key goes to its own servers only — translation's or the speech
+                // server's; a backup on a third address is called keyless.
+                let backupKey = c.hearBackupKey ?? ([Self.server(c.base), Self.server(base)].contains(Self.server(backupBase)) ? key : "")
                 let backupTimeout = failure == .timeout ? max(4, timeout / 2) : timeout
                 debugLog("ling: primary model \(model) failed (\(Self.name(failure))); trying backup model \(backupModel)")
                 do {
-                    return try await executeTranscribe(wav, language: language, base: backupBase, model: backupModel, key: backupKey, timeout: backupTimeout)
+                    return try await executeTranscribe(wav, language: language, base: backupBase, model: backupModel,
+                                                       key: backupKey, timeout: backupTimeout, isPrimaryKey: false)
                 } catch {
                     debugLog("ling: backup model \(backupModel) also failed: \(error)")
                     throw error
@@ -922,8 +924,10 @@ final class LingClient: ObservableObject {
         }
     }
 
+    /// `isPrimaryKey` false (the backup call): a 401/403 is the backup's own auth problem and must
+    /// not mark the main key bad.
     private func executeTranscribe(_ wav: Data, language: String?, base: URL, model: String,
-                                   key: String, timeout: TimeInterval) async throws -> (text: String, language: String?) {
+                                   key: String, timeout: TimeInterval, isPrimaryKey: Bool = true) async throws -> (text: String, language: String?) {
         // The speech server's own start gate: its 429 doesn't pause translation, and the backup
         // call doesn't wait out the primary's Retry-After.
         let g = gate(base)
@@ -937,7 +941,7 @@ final class LingClient: ObservableObject {
         if chatShapeEndpoints.contains(endpointKey) {
             do {
                 let out = try await transcribeChat(wav, language: language, base: base, model: model,
-                                                   key: key, timeout: timeout)
+                                                   key: key, timeout: timeout, isPrimaryKey: isPrimaryKey)
                 report(call, .translate, at: started, queued: queued, outcome: "ok", chars: out.text.count)
                 return out
             } catch let failure as Failure {
@@ -953,7 +957,7 @@ final class LingClient: ObservableObject {
         // Standard `/audio/transcriptions` first (Qwen3-ASR, Whisper servers, Fun-ASR).
         do {
             let out = try await transcribeMultipart(wav, language: language, base: base, model: model,
-                                                    key: key, timeout: timeout)
+                                                    key: key, timeout: timeout, isPrimaryKey: isPrimaryKey)
             multipartEndpoints.insert(endpointKey)
             report(call, .translate, at: started, queued: queued, outcome: "ok", chars: out.text.count)
             return out
@@ -975,7 +979,7 @@ final class LingClient: ObservableObject {
 
         do {
             let out = try await transcribeChat(wav, language: language, base: base, model: model,
-                                               key: key, timeout: timeout)
+                                               key: key, timeout: timeout, isPrimaryKey: isPrimaryKey)
             chatShapeEndpoints.insert(endpointKey)
             report(call, .translate, at: started, queued: queued, outcome: "ok", chars: out.text.count)
             return out
@@ -1001,7 +1005,7 @@ final class LingClient: ObservableObject {
 
     /// The standard shape: multipart with the WAV as a file.
     private func transcribeMultipart(_ wav: Data, language: String?, base: URL, model: String,
-                                     key: String, timeout: TimeInterval) async throws -> (text: String, language: String?) {
+                                     key: String, timeout: TimeInterval, isPrimaryKey: Bool) async throws -> (text: String, language: String?) {
         var req = URLRequest(url: base.appendingPathComponent("audio/transcriptions"))
         req.httpMethod = "POST"
         req.timeoutInterval = timeout
@@ -1010,7 +1014,7 @@ final class LingClient: ObservableObject {
         var fields = [("model", model), ("temperature", "0")]
         if let language { fields.append(("language", String(language.prefix { $0 != "-" }))) }
         req.httpBody = Self.multipart(fields: fields, file: wav, boundary: boundary)
-        let data = try await send(req, key: key, contentType: nil)
+        let data = try await send(req, key: key, contentType: nil, notes: !isPrimaryKey)
         guard let root = try JSONSerialization.jsonObject(with: data) as? [String: Any],
               let text = root["text"] as? String else { throw Failure.parse }
         return (text.trimmingCharacters(in: .whitespacesAndNewlines), root["language"] as? String)
@@ -1020,7 +1024,7 @@ final class LingClient: ObservableObject {
     /// message, the transcript in `choices[0].message.content`. A model named `vendor/model` also
     /// sends `X-Model-Provider-Id: vendor`, which such gateways need to route the request.
     private func transcribeChat(_ wav: Data, language: String?, base: URL, model: String,
-                                key: String, timeout: TimeInterval) async throws -> (text: String, language: String?) {
+                                key: String, timeout: TimeInterval, isPrimaryKey: Bool) async throws -> (text: String, language: String?) {
         var req = URLRequest(url: base.appendingPathComponent("chat/completions"))
         req.httpMethod = "POST"
         req.timeoutInterval = timeout
@@ -1042,7 +1046,7 @@ final class LingClient: ObservableObject {
         ]
         if let language { body["asr_options"] = ["language": String(language.prefix { $0 != "-" })] }
         req.httpBody = try JSONSerialization.data(withJSONObject: body)
-        let data = try await send(req, key: key, contentType: nil)
+        let data = try await send(req, key: key, contentType: nil, notes: !isPrimaryKey)
         return (try Self.chatTranscript(data), language)
     }
 
