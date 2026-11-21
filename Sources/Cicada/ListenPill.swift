@@ -1,12 +1,38 @@
 import AppKit
 import SwiftUI
 
+/// Whether a window's live indicators should animate.
+@MainActor final class WindowPresence: ObservableObject {
+    @Published var visible = false
+}
+
+private struct WindowAnimationsKey: EnvironmentKey {
+    static let defaultValue = true
+}
+
+extension EnvironmentValues {
+    var windowAnimations: Bool {
+        get { self[WindowAnimationsKey.self] }
+        set { self[WindowAnimationsKey.self] = newValue }
+    }
+}
+
+struct WindowAnimationScope<Content: View>: View {
+    @ObservedObject var presence: WindowPresence
+    let content: Content
+
+    var body: some View {
+        content.environment(\.windowAnimations, presence.visible)
+    }
+}
+
 /// The main window's toolbar: the listening pill centred, settings on the right. A real toolbar,
 /// so macOS centres the window buttons on the same line instead of leaving them above it.
 @MainActor final class MainToolbar: NSObject, NSToolbarDelegate {
     static let pill = NSToolbarItem.Identifier("cicada.pill")
     static let settings = NSToolbarItem.Identifier("cicada.settings")
     let model: AppModel
+    let presence = WindowPresence()
 
     init(model: AppModel) { self.model = model }
 
@@ -32,7 +58,7 @@ import SwiftUI
         let item = NSToolbarItem(itemIdentifier: id)
         let root: AnyView
         if id == Self.pill {
-            root = AnyView(ListenPill(model: model, store: model.store))
+            root = AnyView(ListenPill(model: model, store: model.store, presence: presence))
             item.label = L("开始听")
         } else {
             root = AnyView(
@@ -57,6 +83,7 @@ import SwiftUI
 struct ListenPill: View {
     @ObservedObject var model: AppModel
     @ObservedObject var store: SessionStore
+    @ObservedObject var presence: WindowPresence
     @State private var endingTotal: Double = 30
 
     var body: some View {
@@ -106,9 +133,9 @@ struct ListenPill: View {
             // common, and this is the switch in front of you. Only 结束 ends the meeting.
             showButton {
                 HStack(spacing: 10) {
-                    BreathingMark(size: 22)
+                    BreathingMark(size: 22, presence: presence)
                     Text("正在听").font(.system(size: 13, weight: .semibold))
-                    LevelMeter(model: model, bars: 8, height: 15, color: Palette.accent)
+                    LevelMeter(model: model, presence: presence, bars: 8, height: 15, color: Palette.accent)
                     if let start = store.session(store.liveID)?.startedAt {
                         TimelineView(.periodic(from: .now, by: 1)) { ctx in
                             Text(TranscriptExport.clock(max(0, ctx.date.timeIntervalSince(start))))
@@ -182,12 +209,15 @@ struct ListenPill: View {
 /// The logo with accent rings swelling out of it while Cicada listens.
 struct BreathingMark: View {
     var size: CGFloat = 22
+    /// The rings only exist while their window is on screen: repeatForever otherwise runs and
+    /// lays out an invisible window forever.
+    var presence: WindowPresence? = nil
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         BrandMark(size: size)
             .background {
-                if !reduceMotion {
+                if !reduceMotion, presence?.visible ?? true {
                     ZStack {
                         Ring(size: size, delay: 0)
                         Ring(size: size, delay: 1.1)
@@ -214,28 +244,35 @@ struct BreathingMark: View {
 /// An accent dot with a ring that keeps swelling out of it: "live", without blinking.
 struct BreathingDot: View {
     var size: CGFloat = 8
-    @State private var out = false
+    @Environment(\.windowAnimations) private var windowAnimations
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         Circle().fill(Palette.accent).frame(width: size, height: size)
             .background {
-                if !reduceMotion {
-                    Circle().fill(Palette.accent)
-                        .scaleEffect(out ? 2.6 : 1).opacity(out ? 0 : 0.6)
-                }
-            }
-            .onAppear {
-                guard !reduceMotion else { return }
-                withAnimation(.easeOut(duration: 2).repeatForever(autoreverses: false)) { out = true }
+                if windowAnimations && !reduceMotion { Pulse() }
             }
             .accessibilityHidden(true)
+    }
+
+    private struct Pulse: View {
+        @State private var out = false
+
+        var body: some View {
+            Circle().fill(Palette.accent)
+                .scaleEffect(out ? 2.6 : 1).opacity(out ? 0 : 0.6)
+                .onAppear {
+                    withAnimation(.easeOut(duration: 2).repeatForever(autoreverses: false)) { out = true }
+                }
+        }
     }
 }
 
 /// Bars that follow the loudness of what Cicada hears, newest on the right.
 struct LevelMeter: View {
     @ObservedObject var model: AppModel
+    /// A hidden window's bars freeze: the tick still fires but nothing needs drawing.
+    var presence: WindowPresence? = nil
     var bars = 9
     var height: CGFloat = 16
     var color: Color = Palette.accent
@@ -250,9 +287,8 @@ struct LevelMeter: View {
             }
         }
         .frame(height: height)
-        .animation(.easeOut(duration: 0.08), value: levels)
         .onReceive(tick) { _ in
-            guard model.running else { return }
+            guard presence?.visible ?? true, model.running else { return }
             // Map −40…0 dBFS onto the bar height: quiet speech sits low, a loud voice near the top.
             let rms = model.listen.router.takeLevel()
             let db = 20 * log10(max(Double(rms), 1e-6))

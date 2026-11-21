@@ -9,6 +9,14 @@
       {
         "kind": "fixed",
         "platforms": [
+          "mac"
+        ],
+        "title": "收起实时纪要后，知了少占用一些 CPU。",
+        "text": "纪要窗口收起后不再播放动画，录音和字幕继续。"
+      },
+      {
+        "kind": "fixed",
+        "platforms": [
           "windows"
         ],
         "title": "音频服务重启、拔插扩展坞或驱动重置后，知了会自动重新接上电脑的声音。",

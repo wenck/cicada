@@ -12,6 +12,7 @@ final class NotesWindowController: NSObject, NSWindowDelegate {
     enum Command { case catchUp, search, layout(Layout) }
 
     private var panel: NSPanel?
+    private let presence = WindowPresence()
     private weak var model: AppModel?
     let commands = PassthroughSubject<Command, Never>()
 
@@ -21,7 +22,8 @@ final class NotesWindowController: NSObject, NSWindowDelegate {
     }
 
     var isVisible: Bool { panel?.isVisible ?? false }
-    /// Not read back from the panel: its hosting view lowers `minSize` to the content's.
+    /// Not read back from the panel: with `sizingOptions` empty the hosting view doesn't ask for
+    /// the content's size, so `minSize` stays this.
     static var minWidth: CGFloat { UIStyle.pt(300) }
     private static let autosave = "LiveSubsNotes"
 
@@ -69,10 +71,15 @@ final class NotesWindowController: NSObject, NSWindowDelegate {
             p.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
             p.minSize = NSSize(width: Self.minWidth, height: 180)
             p.backgroundColor = .white
-            p.contentView = FirstClickHostingView(rootView: NotesWindowView(
+            // The listening view animates the whole meeting; measuring it each frame re-measured
+            // the window's whole tree.
+            let content = NotesWindowView(
                 model: model, engine: model.notes, store: model.store, settings: model.settings,
                 commands: commands.eraseToAnyPublisher(),
-                setWidth: { [weak self] w, h in self?.resize(width: w, height: h) }))
+                setWidth: { [weak self] w, h in self?.resize(width: w, height: h) })
+            let hosting = FirstClickHostingView(rootView: WindowAnimationScope(presence: presence, content: content))
+            hosting.sizingOptions = []
+            p.contentView = hosting
             p.setFrameAutosaveName(Self.autosave)
             if !p.setFrameUsingName(Self.autosave) { p.setFrame(defaultFrame(), display: false) }
             panel = p
@@ -80,10 +87,12 @@ final class NotesWindowController: NSObject, NSWindowDelegate {
         if !keepClear() && !asked { return }
         waiting = false
         panel?.orderFrontRegardless()
+        presence.visible = true
         model.notesVisibilityChanged(true)
     }
 
     func hide() {
+        presence.visible = false
         waiting = false
         panel?.orderOut(nil)
         model?.notesVisibilityChanged(false)
@@ -104,6 +113,7 @@ final class NotesWindowController: NSObject, NSWindowDelegate {
         avoiding = window
         if window != nil {
             if panel?.isVisible == true && !keepClear() {
+                presence.visible = false
                 panel?.orderOut(nil)
                 model?.notesVisibilityChanged(false)
             }
@@ -157,6 +167,7 @@ final class NotesWindowController: NSObject, NSWindowDelegate {
     /// Closed with its close button (hide() doesn't come here): the meeting goes on in the
     /// records window, so the notes stay one click away.
     func windowWillClose(_ notification: Notification) {
+        presence.visible = false
         model?.notesVisibilityChanged(false)
         model?.notesWindowClosed()
     }

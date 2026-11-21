@@ -2389,7 +2389,7 @@ final class AppModel: ObservableObject {
             // closeWindow:<main|settings|onboarding>: what the window's close button does.
             let w = NSApp.windows.first { w in
                 switch arg {
-                case "main": w.contentView is NSHostingView<MainWindowView>
+                case "main": w.contentView is NSHostingView<WindowAnimationScope<MainWindowView>>
                 case "settings": w.contentView is NSHostingView<SettingsView>
                 default: w.contentView is NSHostingView<OnboardingView>
                 }
@@ -2439,14 +2439,14 @@ final class AppModel: ObservableObject {
             if let t = Double(arg) { NotificationCenter.default.post(name: .debugPlay, object: t) }
         case "mainWindow":
             // Place the records window, floating above other apps' panels while testing clicks (no arg: back to normal).
-            guard let w = NSApp.windows.first(where: { $0.contentView is NSHostingView<MainWindowView> }) else { break }
+            guard let w = NSApp.windows.first(where: { $0.contentView is NSHostingView<WindowAnimationScope<MainWindowView>> }) else { break }
             let v = arg.split(separator: ",").compactMap { Double($0) }
             if v.count == 4 { w.setFrame(NSRect(x: v[0], y: v[1], width: v[2], height: v[3]), display: true) }
             w.level = v.count == 4 ? .floating : .normal
             w.orderFrontRegardless()
         case "mainRender":
             // The main window as drawn, for checking it without Screen Recording permission.
-            guard let view = NSApp.windows.first(where: { $0.contentView is NSHostingView<MainWindowView> })?.contentView,
+            guard let view = NSApp.windows.first(where: { $0.contentView is NSHostingView<WindowAnimationScope<MainWindowView>> })?.contentView,
                   let rep = view.bitmapImageRepForCachingDisplay(in: view.bounds) else { break }
             view.cacheDisplay(in: view.bounds, to: rep)
             try? rep.representation(using: .png, properties: [:])?.write(to: URL(fileURLWithPath: arg))
@@ -2905,8 +2905,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, UNUs
             w.isReleasedWhenClosed = false
             w.minSize = NSSize(width: 760, height: 480)
             w.delegate = self
-            w.contentView = NSHostingView(rootView: MainWindowView(model: model, store: model.store, settings: model.settings,
-                                                                   importer: model.importer))
+            // An always-animating subview would otherwise re-measure the whole window every frame.
+            let content = MainWindowView(model: model, store: model.store, settings: model.settings,
+                                         importer: model.importer)
+            let hosting = NSHostingView(rootView: WindowAnimationScope(presence: mainToolbar.presence, content: content))
+            hosting.sizingOptions = []
+            w.contentView = hosting
             w.toolbar = mainToolbar.make()
             w.toolbarStyle = .unified
             w.titlebarSeparatorStyle = .none
@@ -2917,6 +2921,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, UNUs
         NSApp.setActivationPolicy(.regular)
         mainWindow?.makeKeyAndOrderFront(nil)
         NSApp.activate()
+        if let w = mainWindow {
+            mainToolbar.presence.visible = w.isVisible && !w.isMiniaturized && w.occlusionState.contains(.visible)
+        }
     }
 
     func showSettingsWindow() {
@@ -2931,7 +2938,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, UNUs
             w.isReleasedWhenClosed = false
             w.minSize = NSSize(width: UIStyle.pt(680), height: UIStyle.pt(480))
             w.delegate = self
-            w.contentView = NSHostingView(rootView: SettingsView(model: model, settings: model.settings, installer: model.installer))
+            // An always-animating subview would otherwise re-measure the whole window every frame.
+            let settingsHosting = NSHostingView(rootView: SettingsView(model: model, settings: model.settings, installer: model.installer))
+            settingsHosting.sizingOptions = []
+            w.contentView = settingsHosting
             w.setFrameAutosaveName("LiveSubsSettings")
             if !w.setFrameUsingName("LiveSubsSettings") {
                 w.center()
@@ -2986,6 +2996,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, UNUs
                 DispatchQueue.main.async { [weak self] in MainActor.assumeIsolated { self?.showMainWindow() } }
             }
         }
+        if let w, w === mainWindow {
+            // A closed window with a live toolbar keeps animating (the pill's meter and rings)
+            // and laying out every frame; showMainWindow() rebuilds the whole thing on reopen.
+            w.toolbar = nil
+            w.contentView = nil
+            mainWindow = nil
+            mainToolbar.presence.visible = false
+        }
+    }
+
+    // Pause live indicators in both the toolbar and the content when neither is on screen.
+    func windowDidChangeOcclusionState(_ notification: Notification) { updateMainPresence(notification) }
+    func windowDidMiniaturize(_ notification: Notification) { updateMainPresence(notification) }
+    func windowDidDeminiaturize(_ notification: Notification) { updateMainPresence(notification) }
+
+    private func updateMainPresence(_ notification: Notification) {
+        guard let w = notification.object as? NSWindow, w === mainWindow else { return }
+        let visible = w.isVisible && !w.isMiniaturized && w.occlusionState.contains(.visible)
+        guard mainToolbar.presence.visible != visible else { return }
+        mainToolbar.presence.visible = visible
     }
 
     func windowDidResize(_ notification: Notification) {

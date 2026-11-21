@@ -1327,9 +1327,10 @@ func phase(_ date: Date, period: Double, delay: Double = 0) -> Double {
 struct Spinner: View {
     var size: CGFloat = 16
     var track = Palette.accentPale
+    @Environment(\.windowAnimations) private var windowAnimations
 
     var body: some View {
-        TimelineView(.animation(minimumInterval: 1 / 30)) { ctx in
+        TimelineView(.animation(minimumInterval: 1 / 30, paused: !windowAnimations)) { ctx in
             ZStack {
                 Circle().stroke(track, lineWidth: 2)
                 Circle().trim(from: 0, to: 0.25)
@@ -1344,8 +1345,10 @@ struct Spinner: View {
 
 /// "…" whose dots light up one after another.
 struct AnimatedDots: View {
+    @Environment(\.windowAnimations) private var windowAnimations
+
     var body: some View {
-        TimelineView(.animation(minimumInterval: 1 / 15)) { ctx in
+        TimelineView(.animation(minimumInterval: 1 / 15, paused: !windowAnimations)) { ctx in
             HStack(spacing: 0) {
                 ForEach(0..<3, id: \.self) { i in
                     Text(".").opacity(0.3 + 0.7 * (0.5 - 0.5 * cos(phase(ctx.date, period: 1.2, delay: Double(i) * 0.2) * 2 * .pi)))
@@ -1364,6 +1367,7 @@ struct CapturableMark: View {
     /// The dot's diameter; the halo spills past it, so leave room around the mark.
     var size: CGFloat = 8
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.windowAnimations) private var windowAnimations
     @State private var since = Date()
 
     private static let off = Color(red: 0.663, green: 0.682, blue: 0.722) // #A9AEB8
@@ -1375,7 +1379,7 @@ struct CapturableMark: View {
             } else if reduceMotion {
                 Circle().fill(Palette.accent).background(Circle().fill(Palette.accent).opacity(0.25).scaleEffect(1.6))
             } else {
-                TimelineView(.animation(minimumInterval: 1 / 30)) { ctx in
+                TimelineView(.animation(minimumInterval: 1 / 30, paused: !windowAnimations)) { ctx in
                     let age = ctx.date.timeIntervalSince(since)
                     // Starts expanding the moment it turns on: 0 → 1 → 0 over 2.4 s.
                     let t = 0.5 - 0.5 * cos(phase(ctx.date, period: 2.4, delay: since.timeIntervalSinceReferenceDate) * 2 * .pi)
@@ -1396,8 +1400,10 @@ struct CapturableMark: View {
 }
 
 struct LiveDot: View {
+    @Environment(\.windowAnimations) private var windowAnimations
+
     var body: some View {
-        TimelineView(.animation(minimumInterval: 1 / 15)) { ctx in
+        TimelineView(.animation(minimumInterval: 1 / 15, paused: !windowAnimations)) { ctx in
             Circle().fill(Palette.accent).frame(width: 7, height: 7)
                 .opacity(0.35 + 0.65 * (0.5 + 0.5 * cos(phase(ctx.date, period: 1.4) * 2 * .pi)))
         }
@@ -1410,12 +1416,13 @@ struct SkeletonBar: View {
     var fraction: CGFloat = 1
     var height: CGFloat = 12
     var warm = false
+    @Environment(\.windowAnimations) private var windowAnimations
 
     var body: some View {
         let base = warm ? Color(red: 0.965, green: 0.89, blue: 0.86) : Color(red: 0.933, green: 0.941, blue: 0.953)
         let light = warm ? Color(red: 0.992, green: 0.953, blue: 0.933) : Color(red: 0.969, green: 0.973, blue: 0.98)
         GeometryReader { g in
-            TimelineView(.animation(minimumInterval: 1 / 30)) { ctx in
+            TimelineView(.animation(minimumInterval: 1 / 30, paused: !windowAnimations)) { ctx in
                 let x = phase(ctx.date, period: 1.4) * 2 - 0.5
                 RoundedRectangle(cornerRadius: min(6, height / 2))
                     .fill(LinearGradient(stops: [.init(color: base, location: 0), .init(color: light, location: 0.5),
@@ -1488,9 +1495,10 @@ struct NotesListeningView: View {
 /// Four small orange bars rising and falling: "listening", at the size of a line of text.
 struct SoundBars: View {
     var height: CGFloat = 22
+    @Environment(\.windowAnimations) private var windowAnimations
 
     var body: some View {
-        TimelineView(.animation(minimumInterval: 1 / 30)) { ctx in
+        TimelineView(.animation(minimumInterval: 1 / 15, paused: !windowAnimations)) { ctx in
             HStack(spacing: 3) {
                 ForEach(0..<4, id: \.self) { i in
                     let p = phase(ctx.date, period: 1.1, delay: Double(i) * 0.15)
