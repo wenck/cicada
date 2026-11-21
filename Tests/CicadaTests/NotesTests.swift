@@ -146,7 +146,7 @@ import Testing
           {"start": 300, "title": "no evidence", "summary": "s", "points": ["c"]}]}
         """
         let n = NotesEngine.parse(raw, times: times, startedAt: 0)
-        #expect(n?.topics.map(\.start) == [51 * 60, 300])
+        #expect(n?.topics.map(\.start) == [Double(51 * 60), 300])
     }
 
     @Test func partTopicsJoinedNotDropped() {

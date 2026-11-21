@@ -8,8 +8,10 @@ import Testing
     private var signal: [Float] {
         (0..<16000).map { n in
             let t = Double(n) / 16000
-            return Float(0.3 * sin(2 * .pi * 220 * t) + 0.1 * sin(2 * .pi * 1234 * t)
-                         + 0.05 * (Double((n * 7919) % 1000) / 1000 - 0.5))
+            let low = 0.3 * sin(2 * Double.pi * 220 * t)
+            let high = 0.1 * sin(2 * Double.pi * 1234 * t)
+            let ripple = 0.05 * (Double((n * 7919) % 1000) / 1000 - 0.5)
+            return Float(low + high + ripple)
         }
     }
 

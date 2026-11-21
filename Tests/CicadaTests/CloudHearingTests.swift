@@ -22,10 +22,12 @@ struct CloudHearingTests {
         let erring = CloudHearing.trouble(LingClient.Failure.http(502), service: "ZenMux")
         let away = CloudHearing.trouble(LingClient.Failure.network, service: "ZenMux")
         #expect(erring.contains("ZenMux") && erring.contains("HTTP 502"))
-        #expect(away.contains("ZenMux") && !away.contains("HTTP"))
-        #expect(CloudHearing.trouble(LingClient.Failure.http(429), service: "ZenMux") == away)
-        #expect(CloudHearing.trouble(LingClient.Failure.timeout, service: "ZenMux") == away)
-        #expect(CloudHearing.trouble(LingClient.Failure.invalidKey, service: "ZenMux") == L("key 已失效，到设置 › AI 服务里重填"))
+        #expect(away == L("网络连接异常，正在自动重试…"))
+        let limited = CloudHearing.trouble(LingClient.Failure.http(429), service: "ZenMux")
+        let timeout = CloudHearing.trouble(LingClient.Failure.timeout, service: "ZenMux")
+        #expect(limited.contains("ZenMux") && limited.contains("429"))
+        #expect(timeout.contains("ZenMux") && timeout != limited && timeout != away)
+        #expect(CloudHearing.trouble(LingClient.Failure.invalidKey, service: "ZenMux") == L("API Key 已失效，请在设置中重填"))
     }
 
     @Test func dropsNoise() {
