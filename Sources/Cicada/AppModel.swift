@@ -1321,6 +1321,7 @@ final class AppModel: ObservableObject {
         listen.aiServiceChanged()
         roomListen.aiServiceChanged()
         applyVoice()
+        LocalASRService.shared.sync(settings.aiConfig)
     }
 
     func setVoice(_ id: String, for language: String) {
@@ -2766,7 +2767,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, UNUs
         installDeviceListener()
         Task { await model.launch() }
         model.updates.start()
-        LocalASRService.shared.startIfNeeded()
     }
 
     /// Files dropped on the Dock icon or opened with Cicada: imported as records.
@@ -2814,7 +2814,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, UNUs
     }
 
     func applicationWillTerminate(_ notification: Notification) {
-        LocalASRService.shared.stop()
+        // The local ASR daemon isn't stopped here: its owner watchdog ends it once this app's
+        // PID is gone, which also covers SIGTERM, kill -9 and crashes.
         model.stop()
         // Other apps would be left on the virtual mic, hearing nothing.
         model.systemMic.release()

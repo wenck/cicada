@@ -21,6 +21,7 @@ mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN/Cicada" "$APP/Contents/MacOS/Cicada"
 cp Resources/Info.plist "$APP/Contents/Info.plist"
 cp Resources/sample/sample.m4a "$APP/Contents/Resources/"
+cp tools/local_asr_service.py "$APP/Contents/Resources/"
 # The experimental voiceprint model; the app compiles it on first use (no coremlcompiler in the CLT).
 cp -R Resources/models/SpeakerEmbedding.mlpackage "$APP/Contents/Resources/"
 cp -R Resources/*.lproj "$APP/Contents/Resources/"
