@@ -246,6 +246,9 @@ final class LingClient: ObservableObject {
     /// Gateways confirmed to use the chat shape rather than `/audio/transcriptions`. Avoids an
     /// expensive failed round-trip on every single sentence.
     private var chatShapeEndpoints: Set<String> = []
+    /// Gateways confirmed to answer `/audio/transcriptions`. A failure there is thrown, not
+    /// retried as a chat call: every sentence would pay for a request twice.
+    private var multipartEndpoints: Set<String> = []
     /// Notes' own server's text models from its `/models` (empty while notes share translation's address).
     @Published private(set) var notesCatalog: [String] = []
 
@@ -257,6 +260,8 @@ final class LingClient: ObservableObject {
     func reconfigure() {
         settingsGeneration += 1
         noTemplateKwargs = []
+        chatShapeEndpoints = []
+        multipartEndpoints = []
         recheck?.cancel()
         catalog = []
         listed = nil
@@ -902,10 +907,12 @@ final class LingClient: ObservableObject {
             }
             if isRetryable, let backupModel = c.hearBackupModel, !backupModel.isEmpty {
                 let backupBase = c.hearBackupBase ?? base
-                let backupKey = c.hearBackupKey ?? key
+                // The primary key goes only to its own server; a keyless backup sends none.
+                let backupKey = c.hearBackupKey ?? (Self.server(backupBase) == Self.server(base) ? key : "")
+                let backupTimeout = failure == .timeout ? max(4, timeout / 2) : timeout
                 debugLog("ling: primary model \(model) failed (\(Self.name(failure))); trying backup model \(backupModel)")
                 do {
-                    return try await executeTranscribe(wav, language: language, base: backupBase, model: backupModel, key: backupKey, timeout: timeout)
+                    return try await executeTranscribe(wav, language: language, base: backupBase, model: backupModel, key: backupKey, timeout: backupTimeout)
                 } catch {
                     debugLog("ling: backup model \(backupModel) also failed: \(error)")
                     throw error
@@ -917,8 +924,11 @@ final class LingClient: ObservableObject {
 
     private func executeTranscribe(_ wav: Data, language: String?, base: URL, model: String,
                                    key: String, timeout: TimeInterval) async throws -> (text: String, language: String?) {
+        // The speech server's own start gate: its 429 doesn't pause translation, and the backup
+        // call doesn't wait out the primary's Retry-After.
+        let g = gate(base)
         let asked = Date()
-        await acquire(.translate)
+        await acquire(.translate, gate: g)
         let queued = Date().timeIntervalSince(asked)
         let started = Date()
         let call = CallLabel(provider: config().provider.id.rawValue, model: model, role: "heard-them")
@@ -932,7 +942,7 @@ final class LingClient: ObservableObject {
                 return out
             } catch let failure as Failure {
                 report(call, .translate, at: started, queued: queued, outcome: Self.name(failure))
-                if failure == .rateLimited { _ = rateLimited(1, retryAfter: lastRetryAfter, gate: gate()) }
+                if failure == .rateLimited { _ = rateLimited(1, retryAfter: lastRetryAfter, gate: g) }
                 throw failure
             } catch {
                 report(call, .translate, at: started, queued: queued, outcome: "parse")
@@ -944,14 +954,17 @@ final class LingClient: ObservableObject {
         do {
             let out = try await transcribeMultipart(wav, language: language, base: base, model: model,
                                                     key: key, timeout: timeout)
+            multipartEndpoints.insert(endpointKey)
             report(call, .translate, at: started, queued: queued, outcome: "ok", chars: out.text.count)
             return out
         } catch let failure as Failure {
             // A gateway that only speaks the chat shape (audio as `input_audio` in messages) answers
-            // 400/404/422 here: try that before giving up on the line.
-            guard Self.chatShapeWorthTrying(failure) else {
+            // 400/404/422 here: try that before giving up on the line. One confirmed to take
+            // multipart gets no second shot — a failed sentence stays one request.
+            let known = multipartEndpoints.contains(endpointKey)
+            guard !known, Self.chatShapeWorthTrying(failure) else {
                 report(call, .translate, at: started, queued: queued, outcome: Self.name(failure))
-                if failure == .rateLimited { _ = rateLimited(1, retryAfter: lastRetryAfter, gate: gate()) }
+                if failure == .rateLimited { _ = rateLimited(1, retryAfter: lastRetryAfter, gate: g) }
                 throw failure
             }
             debugLog("ling: /audio/transcriptions refused (\(Self.name(failure))); trying the chat shape")
@@ -968,7 +981,7 @@ final class LingClient: ObservableObject {
             return out
         } catch let failure as Failure {
             report(call, .translate, at: started, queued: queued, outcome: Self.name(failure))
-            if failure == .rateLimited { _ = rateLimited(1, retryAfter: lastRetryAfter, gate: gate()) }
+            if failure == .rateLimited { _ = rateLimited(1, retryAfter: lastRetryAfter, gate: g) }
             throw failure
         } catch {
             report(call, .translate, at: started, queued: queued, outcome: "parse")
@@ -1030,6 +1043,12 @@ final class LingClient: ObservableObject {
         if let language { body["asr_options"] = ["language": String(language.prefix { $0 != "-" })] }
         req.httpBody = try JSONSerialization.data(withJSONObject: body)
         let data = try await send(req, key: key, contentType: nil)
+        return (try Self.chatTranscript(data), language)
+    }
+
+    /// The transcript in a chat reply: `content` as a string or as `text` parts joined. A reply
+    /// that carries only `reasoning_content` throws — thinking never becomes a subtitle.
+    nonisolated static func chatTranscript(_ data: Data) throws -> String {
         guard let root = try JSONSerialization.jsonObject(with: data) as? [String: Any],
               let choices = root["choices"] as? [[String: Any]],
               let message = choices.first?["message"] as? [String: Any] else { throw Failure.parse }
@@ -1038,12 +1057,10 @@ final class LingClient: ObservableObject {
             text = direct
         } else if let parts = message["content"] as? [[String: Any]] {
             text = parts.compactMap { $0["text"] as? String }.joined()
-        } else if let reasoning = message["reasoning_content"] as? String, !reasoning.isEmpty {
-            text = reasoning
         } else {
             throw Failure.parse
         }
-        return (text.trimmingCharacters(in: .whitespacesAndNewlines), language)
+        return text.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     /// One second of silence through the speech model: does the address answer, and does the

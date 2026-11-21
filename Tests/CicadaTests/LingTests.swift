@@ -367,4 +367,31 @@ final class LingStub: URLProtocol, @unchecked Sendable {
             #expect(b.timeIntervalSince(a) >= 0.55)
         }
     }
+
+    // MARK: Chat transcript
+
+    private func reply(_ message: [String: Any]) -> Data {
+        try! JSONSerialization.data(withJSONObject: ["choices": [["message": message]]])
+    }
+
+    @Test func chatTranscriptReadsStringContent() throws {
+        #expect(try LingClient.chatTranscript(reply(["content": " 你好 "])) == "你好")
+    }
+
+    @Test func chatTranscriptJoinsTextParts() throws {
+        let message: [String: Any] = ["content": [["type": "text", "text": "你好"], ["type": "text", "text": "世界"]]]
+        #expect(try LingClient.chatTranscript(reply(message)) == "你好世界")
+    }
+
+    @Test func chatTranscriptNeverReturnsThinking() {
+        #expect(throws: LingClient.Failure.parse) {
+            try LingClient.chatTranscript(reply(["reasoning_content": "let me think"]))
+        }
+    }
+
+    @Test func chatTranscriptWithoutChoicesThrows() {
+        #expect(throws: LingClient.Failure.parse) {
+            try LingClient.chatTranscript(Data("{}".utf8))
+        }
+    }
 }

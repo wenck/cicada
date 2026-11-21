@@ -232,7 +232,7 @@ final class AppSettings: ObservableObject {
             let hear = aiCustomHearModel.trimmingCharacters(in: .whitespaces)
             let hearBase = aiCustomHearBase.isEmpty ? base : AIProvider.customBase(aiCustomHearBase)
             let backupModel = aiCustomHearBackupModel.trimmingCharacters(in: .whitespaces)
-            let backupBase = aiCustomHearBackupBase.isEmpty ? base : AIProvider.customBase(aiCustomHearBackupBase)
+            let backupBase = aiCustomHearBackupBase.isEmpty ? nil : AIProvider.customBase(aiCustomHearBackupBase)
             let backupKey = AIKey.read("custom-hear-backup")
             let recognizes = aiCustomRecognize && !hear.isEmpty
             let textModel = aiModels["custom"] ?? ""
